@@ -1,0 +1,8 @@
+spacy
+gensim
+unidecode
+pandas
+numpy
+plotly
+deep_translator
+sklearn
