@@ -6,3 +6,4 @@ numpy
 plotly
 deep_translator
 sklearn
+glove-python-binary
