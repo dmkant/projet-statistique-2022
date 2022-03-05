@@ -4,7 +4,7 @@
 from gensim import models
 import pandas as pd
 cbow_model = models.KeyedVectors.load_word2vec_format("word_embedding/tunning/cbow.kv")
-data = pd.DataFrame(kv_model.vectors)
+data = pd.DataFrame(cbow_model.vectors)
 data.index = cbow_model.index_to_key 
 
 #ACP
