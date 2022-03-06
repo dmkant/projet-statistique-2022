@@ -7,6 +7,8 @@ import random
 from gensim import models
 import os 
 from comparaison_BATS import *
+import sys
+
 
 
 def get_df_tag_similarity(read:bool=True,test_size:int = 10):
@@ -65,9 +67,9 @@ def tag_evaluation(embed_model,df_tag_similiraty):
     return(np.mean((matx_similiraty - np.array(df_tag_similiraty))**2)/2)
 
 
-df_tag_similiraty = get_df_tag_similarity(read=False,test_size=300)
-# modeleReference: models.KeyedVectors = models.KeyedVectors.load_word2vec_format("data/w2vec.bin", 
-#                                                                        binary=True, unicode_errors="ignore")
+df_tag_similiraty = get_df_tag_similarity(read=True,test_size=1000)
+modeleReference: models.KeyedVectors = models.KeyedVectors.load_word2vec_format("data/frWiki_no_phrase_no_postag_1000_skip_cut100.bin", 
+                                                                       binary=True, unicode_errors="ignore")
 
 #Tuning parameters
 list_models_filename = os.listdir("word_embedding/training_models")
@@ -89,19 +91,16 @@ for models_filename in list_models_filename:
     list_windows.append(tune_param[1])
     list_dim_emb.append(tune_param[2].split(".")[0])
 
+
+    #Reference evaluation
+    stats = get_stats_comparaisons_BATS(embed_model, modeleReference)
+    list_ref_err_dis_cos.append(stats["err_dis_cos"])
+    list_ref_rmse_dis_cos.append(stats["rmse_dis_cos"])
+    list_ref_err_moy_freq.append(stats["err_moy_freq"])
+    list_ref_rmse_freq.append(stats["rmse_freq"])
+    
     #tag evaluation
     list_tag_mse.append(tag_evaluation(embed_model=embed_model,df_tag_similiraty=df_tag_similiraty))
-    #Reference evaluation
-    # stats = get_stats_comparaisons_BATS(embed_model, modeleReference)
-    # list_ref_err_dis_cos.append(stats["err_dis_cos"])
-    # list_ref_rmse_dis_cos.append(stats["rmse_dis_cos"])
-    # list_ref_err_moy_freq.append(stats["err_moy_freq"])
-    # list_ref_rmse_freq.append(stats["rmse_freq"])
-
-    list_ref_err_dis_cos.append(np.NAN)
-    list_ref_rmse_dis_cos.append(np.NAN)
-    list_ref_err_moy_freq.append(np.NAN)
-    list_ref_rmse_freq.append(np.NAN)
 
 
 df_evaluation = pd.DataFrame(list(zip(
