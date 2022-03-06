@@ -22,9 +22,6 @@ def save_glove(glove_model,file_name):
                 f.write(" ")
             f.write("\n")
     
-
-
-
 # load sentences
 with open("data/docs.json") as file:
     docs = json.load(file)
