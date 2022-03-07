@@ -42,11 +42,11 @@ for window in list_windows:
         glove_model.fit(corpus.matrix, epochs=30, no_threads=2)
         glove_model.add_dictionary(corpus.dictionary)
         #save glove_model
-        save_glove(glove_model=glove_model,file_name="word_embedding/training_models/glove_"+str(window)+"_"+str(dim_emb)+".kv")
+        save_glove(glove_model=glove_model,file_name="data/training_models/glove_"+str(window)+"_"+str(dim_emb)+".kv")
         #Word2vec models
         w2vec_skipgramm = models.Word2Vec(sentences = docs, size = dim_emb, window = window, min_count = 1, workers = 6, sg = 1)
         w2vec_cbow = models.Word2Vec(sentences = docs, size = dim_emb, window = window, min_count = 1, workers = 6, sg = 0)
 
         #save
-        w2vec_skipgramm.wv.save_word2vec_format("word_embedding/training_models/skipgramm_"+str(window)+"_"+str(dim_emb)+".kv")
-        w2vec_cbow.wv.save_word2vec_format("word_embedding/training_models/cbow_"+str(window)+"_"+str(dim_emb)+".kv")
+        w2vec_skipgramm.wv.save_word2vec_format("data/training_models/skipgramm_"+str(window)+"_"+str(dim_emb)+".kv")
+        w2vec_cbow.wv.save_word2vec_format("data/training_models/cbow_"+str(window)+"_"+str(dim_emb)+".kv")

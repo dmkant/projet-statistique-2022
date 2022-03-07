@@ -13,7 +13,7 @@ import sys
 
 def get_df_tag_similarity(read:bool=True,test_size:int = 10):
     if read:
-        df_tag_similiraty = pd.read_csv("word_embedding/tunning/tag_similiraty.csv",sep=";",index_col=0)
+        df_tag_similiraty = pd.read_csv("data/tunning/tag_similiraty.csv",sep=";",index_col=0)
     else:
         # Get all tags
         # load sentences
@@ -51,7 +51,7 @@ def get_df_tag_similarity(read:bool=True,test_size:int = 10):
 
         # Save matx_tag_similarity
         df_tag_similiraty = pd.DataFrame(matx_tag_similiraty,index=dictionary_test,columns=dictionary_test)
-        df_tag_similiraty.to_csv("word_embedding/tunning/tag_similiraty.csv",sep=";")
+        df_tag_similiraty.to_csv("data/tunning/tag_similiraty.csv",sep=";")
     
     return(df_tag_similiraty)
 
@@ -72,7 +72,7 @@ modeleReference: models.KeyedVectors = models.KeyedVectors.load_word2vec_format(
                                                                        binary=True, unicode_errors="ignore")
 
 #Tuning parameters
-list_models_filename = os.listdir("word_embedding/training_models")
+list_models_filename = os.listdir("data/training_models")
 list_windows = []
 list_dim_emb = []
 list_type_model = []
@@ -85,7 +85,7 @@ list_ref_rmse_freq = []
 
 for models_filename in list_models_filename:
     print(models_filename)
-    embed_model = models.KeyedVectors.load_word2vec_format(f"word_embedding/training_models/{models_filename}")
+    embed_model = models.KeyedVectors.load_word2vec_format(f"data/training_models/{models_filename}")
     tune_param = models_filename.split("_")
     list_type_model.append(tune_param[0])
     list_windows.append(tune_param[1])
@@ -109,4 +109,4 @@ df_evaluation = pd.DataFrame(list(zip(
                                  columns=[ "models_filename", "type_model", "windows", "dim_emb",
     "tag_mse","ref_err_dis_cos","ref_rmse_dis_cos","ref_err_moy_freq","ref_rmse_freq"])
 
-df_evaluation.to_csv("word_embedding/tunning/evaluation.csv",sep=";",index=False)
+df_evaluation.to_csv("data/tunning/evaluation.csv",sep=";",index=False)
