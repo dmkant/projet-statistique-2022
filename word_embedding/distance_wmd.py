@@ -1,5 +1,9 @@
+import os
+
 import numpy as np
+import py7zr
 from gensim import models
+from pandas import DataFrame
 
 
 def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int, posAutresDocs: int | list[int] = None) -> float | list[float]:
@@ -44,7 +48,7 @@ def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int
     return distances[0] if len(distances) == 1 else distances
 
 
-def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, retour = 'fichier', nomFichier = "distances.txt", toInteger = True) -> list[np.array]:
+def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, retour = 'fichier', nomFichier = "distances.7z", toInteger = True) -> list[np.array]:
     """
     ATTENTION : Peut être très très LONG ! il y a n * (n - 1) / 2 distances à estimer (n la taille du corpus)
     Calcule la distance wmd sur l'entièreté des documents. Calcule pour tout indice
@@ -57,8 +61,11 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
         distancesDocs = [np.array([0.] * (len(docs) - 1 - i), dtype = typeStockage) for i in range(len(docs) - 1)]
     
     elif retour == 'fichier':
-        cheminFichier = '../data/' + nomFichier
+        path = "../data/distances/"
+        cheminFichier = path + 'wmd.txt'
         fichier = open(cheminFichier, 'w')
+        fichier.write(('integer' if toInteger else 'float') + '\n')
+        
 
     nbTotal: int = len(docs) * (len(docs) - 1) / 2 
     print(f"Nombre de distances à calculer : {nbTotal}")
@@ -103,23 +110,57 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
     
     if retour == 'fichier':
         fichier.close()
-        print("Données enregistrées dans " + cheminFichier)
+        print("Calculs terminés. Enregistrement dans une archive.")
+        cheminArchive = path + nomFichier
+        archive = py7zr.SevenZipFile(cheminArchive, 'w')
+        archive.write(cheminFichier, arcname = 'wmd.txt')
+        archive.close()
+        os.remove(cheminFichier)
+        print("Données enregistrées dans " + cheminArchive)
+
         return None
 
     elif retour == 'liste':
         return distancesDocs
     
-def lecture_fichier_distances_wmd(chemin: str = "../data/distances.txt", integer = True) -> list[np.ndarray]:
+def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> list[np.ndarray]:
     
-    typeData = np.uint32 if integer else np.float32
+    estUneArchive: bool = False
+    path: str = "../data/distances/"
+    cheminFichier = path + nomFichier
+    if cheminFichier[-3:] == '.7z':
+        estUneArchive = True
+        with py7zr.SevenZipFile(cheminFichier, 'r') as archive:
+            archive.extractall(path = path)
+        cheminFichier = path + 'wmd.txt'
+    
     distances = []
 
-    fichier = open(chemin, 'r')
-    for ligne in fichier.readlines():
-        ligne = ligne.split('\t')
-        distances.append(np.array([int(v) if integer else float(v) for v in ligne], dtype = typeData))
-        del ligne
+    fichier = open(cheminFichier, 'r')
+    lignesFichier = fichier.readlines()
+
+    # Suppression des '\n' en fin de ligne
+    lignesFichier = [ligne.replace('\n', '') for ligne in lignesFichier]
+
+    # Gestion du type de données
+    enTete: str = lignesFichier[0]
+    typeData = np.uint32 if enTete == 'integer' else np.float32
+    lignesFichier: list[str] = lignesFichier[1:]
+
+    # Séparation des données numériques par séparateur '\t'
+    lignesFichier: list[list[str]] = [ligne.split('\t') for ligne in lignesFichier]
+
+    # Nombre de documents étudiés
+    N = len(lignesFichier) + 1
+    distances = np.zeros((N,N), dtype = typeData)
+    for i in range(N - 1):
+        for j in range(i + 1, N):
+            distances[i,j] = distances[j,i] = typeData(lignesFichier[i][j - (i + 1)])
         
     fichier.close()
 
-    return distances
+    if estUneArchive:
+        os.remove(cheminFichier)
+
+
+    return DataFrame(distances)
