@@ -67,7 +67,7 @@ def tag_evaluation(embed_model,df_tag_similiraty):
     return(np.mean((matx_similiraty - np.array(df_tag_similiraty))**2)/2)
 
 
-df_tag_similiraty = get_df_tag_similarity(read=True,test_size=1000)
+df_tag_similiraty = get_df_tag_similarity(read=False,test_size=3000)
 modeleReference: models.KeyedVectors = models.KeyedVectors.load_word2vec_format("data/frWiki_no_phrase_no_postag_1000_skip_cut100.bin", 
                                                                        binary=True, unicode_errors="ignore")
 

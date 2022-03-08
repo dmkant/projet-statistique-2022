@@ -34,7 +34,7 @@ list_dim_emb = [1,5,10,15] + [i for i in range(20,310,20)]
 
 for window in list_windows:
     for dim_emb in list_dim_emb:
-        print(window,"-",dim_emb)
+        print(window,"-",dim_emb,end="\r")
         corpus = Corpus() 
         corpus.fit(docs, window=window)
         # train glove
