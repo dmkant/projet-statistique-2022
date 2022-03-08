@@ -41,9 +41,9 @@ for window in list_windows:
         glove_model = Glove(no_components=dim_emb, learning_rate=0.001)
         glove_model.fit(corpus.matrix, epochs=30, no_threads=2)
         glove_model.add_dictionary(corpus.dictionary)
-        #save glove_model
+        # save glove_model
         save_glove(glove_model=glove_model,file_name="data/training_models/glove_"+str(window)+"_"+str(dim_emb)+".kv")
-        #Word2vec models
+        # Word2vec models
         w2vec_skipgram = models.Word2Vec(sentences = docs, size = dim_emb, window = window, min_count = 1, workers = 6, sg = 1)
         w2vec_cbow = models.Word2Vec(sentences = docs, size = dim_emb, window = window, min_count = 1, workers = 6, sg = 0)
 
