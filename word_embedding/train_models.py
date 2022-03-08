@@ -29,7 +29,7 @@ with open("data/docs.json") as file:
     
     
 list_windows = [2,3,4,5,6,7,8,9,10,15]
-list_dim_emb = [i for i in range(10,210,20)]
+list_dim_emb = [1,5,10,15] + [i for i in range(20,310,20)]
 
 
 for window in list_windows:
