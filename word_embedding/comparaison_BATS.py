@@ -3,27 +3,42 @@ import spacy
 from deep_translator import GoogleTranslator
 from gensim import models
 
-nlp = spacy.load("fr_core_news_sm")
+nlp = spacy.load("fr_core_news_md")
 traducteur = GoogleTranslator(source='en',target='fr')
+pathBATS: str = "../data/BATS_3.0/"
 
 # Récupération des données BATS et passage au français
 #vocabulaireCommun = set(vocabulaire).intersection(w2vecR.index_to_key)
 def conv_BATS(pathBATS, listeFichiers, vocab: list[str]):
         BATS: list[list[str]] = []
         for nomFichier in listeFichiers:
+            print(nomFichier)
             with open(pathBATS + nomFichier + ".txt") as f:
                 fichier = f.readlines()
             for ligne in fichier:
-                ligne = ligne.replace('/','\t').split('\t')
-                ligne = ' '.join([traducteur.translate(s) for s in ligne])
-                # passage en minuscules
-                ligne = ligne.lower()
-                #ligne = traducteur.translate(ligne)
-                ligne = [token.lemma_ for token in nlp(ligne) if not token.is_stop and not token.is_punct]
-                #ligne = [nlp(traducteur.translate(s)).lemma_ for s in ligne.split('\t')]
-                for mot in ligne[1:]:
-                    if ligne[0] in vocab and mot in vocab and mot != ligne[0] and (c := [ligne[0], mot]) not in BATS:
-                        BATS.append(c)
+
+                ligne = ligne.replace('\n','').replace('/','\t')
+                ligne = ligne.split('\t')
+                res = []
+                for mot in ligne:
+                    try:
+                        trad = traducteur.translate(mot.replace('_', ' '))
+                        # Si la traduction est en un seul mot
+                        if ' ' not in trad:
+                            res.append(trad)
+                    except:
+                        pass
+
+                if len(ligne) > 1:
+                    ligne = ' '.join(res)
+                    # passage en minuscules
+                    ligne = ligne.lower()
+                    #ligne = traducteur.translate(ligne)
+                    ligne = [token.lemma_ for token in nlp(ligne) if not token.is_stop and not token.is_punct]
+                    #ligne = [nlp(traducteur.translate(s)).lemma_ for s in ligne.split('\t')]
+                    for mot in ligne[1:]:
+                        if ligne[0] in vocab and mot in vocab and mot != ligne[0] and (c := [ligne[0], mot]) not in BATS:
+                            BATS.append(c)
 
         return BATS
 
@@ -35,21 +50,28 @@ def enregistrer_BATS(nomFichier: str, bats: str):
 
 def set_BATS(vocabulaireCommun: list[str]):
 
-    pathBATS2 = "../data/BATS_3.0/2_Derivational_morphology/"
+    pathBATS2 = pathBATS + "2_Derivational_morphology/"
     listeFichiers2 = ["D01 [noun+less_reg]","D02 [un+adj_reg]","D03 [adj+ly_reg]","D04 [over+adj_reg]","D05 [adj+ness_reg]",
     "D06 [re+verb_reg]","D07 [verb+able_reg]","D08 [verb+er_irreg]","D09 [verb+tion_irreg]","D10 [verb+ment_irreg]"]
     BATS2 = conv_BATS(pathBATS2, listeFichiers2, vocabulaireCommun)
-    enregistrer_BATS("../data/BATS_3.0/2_fr.txt", BATS2)
+    enregistrer_BATS(pathBATS + "2_fr.txt", BATS2)
 
-    pathBATS3 = "../data/BATS_3.0/3_Encyclopedic_semantics/"
+    pathBATS3 = pathBATS + "3_Encyclopedic_semantics/"
     listeFichiers3 = ["E01 [country - capital]", "E02 [country - language]", "E03 [UK_city - county]", "E04 [name - nationality]",
     "E05 [name - occupation]", "E06 [animal - young]", "E07 [animal - sound]", "E08 [animal - shelter]", "E09 [things - color]", "E10 [male - female]"]
     BATS3 = conv_BATS(pathBATS3, listeFichiers3, vocabulaireCommun)
-    enregistrer_BATS("../data/BATS_3.0/3_fr.txt", BATS3)
+    enregistrer_BATS(pathBATS + "3_fr.txt", BATS3)
+
+    pathBATS4 = pathBATS + "4_Lexicographic_semantics/"
+    listeFichiers4 = ["L01 [hypernyms - animals]", "L02 [hypernyms - misc]", "L03 [hyponyms - misc]", "L04 [meronyms - substance]",
+    "L05 [meronyms - member]", "L06 [meronyms - part]", "L07 [synonyms - intensity]", "L08 [synonyms - exact]",
+    "L09 [antonyms - gradable]", "L10 [antonyms - binary]"]
+    BATS4 = conv_BATS(pathBATS4, listeFichiers4, vocabulaireCommun)
+    enregistrer_BATS(pathBATS + "4_fr.txt", BATS4)
 
 def get_BATS() -> list[str]:
     pathBATS: str = "../data/BATS_3.0/"
-    indices = ['2','3']
+    indices = ['2','3','4']
     BATS = []
     for s in indices:
         with open(pathBATS + s + "_fr.txt") as f:
@@ -117,3 +139,10 @@ def get_stats_comparaisons_BATS(modele: models.KeyedVectors, reference: models.K
 
     return stats
 
+
+if __name__ == '__main__':
+    with open("../data/liste_lemmes.txt") as f:
+        v = f.readlines()
+        v = [s.replace('\n', '') for s in v]
+
+    set_BATS(v)
