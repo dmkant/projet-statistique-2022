@@ -244,7 +244,7 @@ mois octobre
 mois mar
 saison tomber
 saison automne
-saison être
+saison etre
 saison hiver
 saison croissance
 saison vacance

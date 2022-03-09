@@ -67,46 +67,48 @@ def tag_evaluation(embed_model,df_tag_similiraty):
     return(np.mean((matx_similiraty - np.array(df_tag_similiraty))**2)/2)
 
 
-df_tag_similiraty = get_df_tag_similarity(read=False,test_size=3000)
-modeleReference: models.KeyedVectors = models.KeyedVectors.load_word2vec_format("data/frWiki_no_phrase_no_postag_1000_skip_cut100.bin", 
-                                                                       binary=True, unicode_errors="ignore")
 
+evaluation_BATS()
+
+            
+# Tags evaluation
+
+df_tag_similiraty = get_df_tag_similarity(read=True,test_size=2000)
 #Tuning parameters
 list_models_filename = os.listdir("data/training_models")
 list_windows = []
 list_dim_emb = []
 list_type_model = []
-#Evaluation metrics
-list_tag_mse = []
-list_ref_err_dis_cos = []
-list_ref_rmse_dis_cos = []
-list_ref_err_moy_freq = []
-list_ref_rmse_freq = []
-
-for models_filename in list_models_filename:
-    print(models_filename)
-    embed_model = models.KeyedVectors.load_word2vec_format(f"data/training_models/{models_filename}")
-    tune_param = models_filename.split("_")
-    list_type_model.append(tune_param[0])
-    list_windows.append(tune_param[1])
-    list_dim_emb.append(tune_param[2].split(".")[0])
 
 
-    #Reference evaluation
-    stats = get_stats_comparaisons_BATS(embed_model, modeleReference)
-    list_ref_err_dis_cos.append(stats["err_dis_cos"])
-    list_ref_rmse_dis_cos.append(stats["rmse_dis_cos"])
-    list_ref_err_moy_freq.append(stats["err_moy_freq"])
-    list_ref_rmse_freq.append(stats["rmse_freq"])
-    
-    #tag evaluation
-    list_tag_mse.append(tag_evaluation(embed_model=embed_model,df_tag_similiraty=df_tag_similiraty))
+def evaluation_tag(df_tag_similiraty, start=0):
+    if start != 0:
+        df_old_evaluation = pd.read_csv("data/tunning/evaluation_tags.csv",sep=";")
+        #Evaluation metrics
+        list_tag_mse = []
 
+    for models_filename in list_models_filename:
+        embed_model = models.KeyedVectors.load_word2vec_format(f"data/training_models/{models_filename}")
+        tune_param = models_filename.split("_")
+        list_type_model.append(tune_param[0])
+        list_windows.append(tune_param[1])
+        list_dim_emb.append(tune_param[2].split(".")[0])
 
-df_evaluation = pd.DataFrame(list(zip(
-    list_models_filename, list_type_model, list_windows, list_dim_emb,
-    list_tag_mse,list_ref_err_dis_cos,list_ref_rmse_dis_cos,list_ref_err_moy_freq,list_ref_rmse_freq)),
-                                 columns=[ "models_filename", "type_model", "windows", "dim_emb",
-    "tag_mse","ref_err_dis_cos","ref_rmse_dis_cos","ref_err_moy_freq","ref_rmse_freq"])
+        
+        #tag evaluation
+        print(models_filename,": ",list_models_filename.index(models_filename), " : TAGS",end="\r")    
+        list_tag_mse.append(tag_evaluation(embed_model=embed_model,df_tag_similiraty=df_tag_similiraty))
+        
+        if list_models_filename.index(models_filename) % 10 == 0:
+            # if "evaluation.csv" in os.listdir("data/tunning"):
+            #     df_old_evaluation = pd.read_csv("data/tunning/evaluation.csv",sep=";")
+            df_evaluation = pd.DataFrame(list(zip(
+                list_models_filename, list_type_model, list_windows, list_dim_emb,
+                list_tag_mse,list_ref_err_dis_cos,list_ref_rmse_dis_cos,list_ref_err_moy_freq,list_ref_rmse_freq)),
+                                            columns=[ "models_filename", "type_model", "windows", "dim_emb",
+                "tag_mse","ref_err_dis_cos","ref_rmse_dis_cos","ref_err_moy_freq","ref_rmse_freq"])
+            df_evaluation.to_csv("data/tunning/evaluation_tags.csv",sep=";",index=False)
+        
 
-df_evaluation.to_csv("data/tunning/evaluation.csv",sep=";",index=False)
+if __name__ == "__main__":
+    print("wsh")
