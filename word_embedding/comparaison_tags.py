@@ -131,8 +131,8 @@ def evaluation_tag(df_tag_similiraty:pd.DataFrame, start:int=0) -> None:
 
 if __name__ == "__main__":
     # Bats evaluation
-    evaluation_BATS()
+    # evaluation_BATS()
     
     # Tags evaluation
-    # df_tag_similiraty = get_df_tag_similarity(read=True,test_size=2000)
-    # evaluation_tag(df_tag_similiraty, start=0)
+    df_tag_similiraty = get_df_tag_similarity(read=True,test_size=2000)
+    evaluation_tag(df_tag_similiraty, start=0)
