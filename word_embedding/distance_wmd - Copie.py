@@ -6,7 +6,7 @@ from gensim import models
 from pandas import DataFrame
 
 
-def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int, posAutresDocs: int | list[int] = None) -> float | list[float]:
+def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int, posAutresDocs: list[int] = None) -> list[float]:
     """
     Renvoie les distances entre un document et un ensemble d'autres documents
 
@@ -61,7 +61,7 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
         distancesDocs = [np.array([0.] * (len(docs) - 1 - i), dtype = typeStockage) for i in range(len(docs) - 1)]
     
     elif retour == 'fichier':
-        path = "../data/distances/"
+        path = "data/distances/"
         cheminFichier = path + 'wmd.txt'
         fichier = open(cheminFichier, 'w')
         fichier.write(('integer' if toInteger else 'float') + '\n')
@@ -69,7 +69,7 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
 
     nbTotal: int = len(docs) * (len(docs) - 1) / 2 
     print(f"Nombre de distances à calculer : {nbTotal}")
-    print("0 % |", end = ' ')
+    print("0 % |",end=" ",flush=True)
     nbFaits: int = 0
     for i, doc in enumerate(docs[:-1]):
 
@@ -96,7 +96,7 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
 
             nbFaits += 1
             if (percent := round(nbFaits * 100 / nbTotal)) % 5 == 0 and round((nbFaits - 1) * 100 / nbTotal) % 5 != 0:
-                print(f"{percent} % |", end = " ")
+                print(f"{percent} % |", end = " ",flush=True)
         
         if retour == 'fichier': 
 
@@ -126,7 +126,7 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
 def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> list[np.ndarray]:
     
     estUneArchive: bool = False
-    path: str = "../data/distances/"
+    path: str = "data/distances/"
     cheminFichier = path + nomFichier
     if cheminFichier[-3:] == '.7z':
         estUneArchive = True
@@ -164,3 +164,22 @@ def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> list[np.n
 
 
     return DataFrame(distances)
+
+
+if __name__ == "__main__":
+    import json
+    import time
+    
+    # load sentences
+    with open("data/docs.json") as file:
+        docs = json.load(file)
+    for model_type in ["skipgram","glove"]:
+        print(model_type)
+        t0 = time.time()
+        embed_model = models.KeyedVectors.load_word2vec_format(f"data/tunning/{model_type}.kv")
+        distance_wmd_tous_docs(docs,
+                                modele = embed_model, 
+                                retour = 'fichier', 
+                                nomFichier = f"distances_{model_type}.7z",
+                                toInteger = True)
+        print(f"\n Temps de calcul: {time.time()-t0}/3600")

@@ -134,5 +134,5 @@ if __name__ == "__main__":
     # evaluation_BATS()
     
     # Tags evaluation
-    df_tag_similiraty = get_df_tag_similarity(read=True,test_size=2000)
+    df_tag_similiraty = get_df_tag_similarity(read=False,test_size=3000)
     evaluation_tag(df_tag_similiraty, start=0)
