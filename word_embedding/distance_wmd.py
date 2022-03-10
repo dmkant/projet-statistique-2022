@@ -4,9 +4,10 @@ import numpy as np
 import py7zr
 from gensim import models
 from pandas import DataFrame
+from typing import Union
 
 
-def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int, posAutresDocs: int | list[int] = None) -> float | list[float]:
+def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int, posAutresDocs: Union[int ,list[int] ]= None) -> Union[float , list[float]]:
     """
     Renvoie les distances entre un document et un ensemble d'autres documents
 
@@ -164,3 +165,21 @@ def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> list[np.n
 
 
     return DataFrame(distances)
+
+if __name__ == "__main__":
+    import json
+    import time
+    
+    # load sentences
+    with open("data/docs.json") as file:
+        docs = json.load(file)
+    for model_type in ["skipgram","glove"]:
+        print(model_type)
+        t0 = time.time()
+        embed_model = models.KeyedVectors.load_word2vec_format(f"data/tunning/{model_type}.kv")
+        distance_wmd_tous_docs(docs,
+                                modele = embed_model, 
+                                retour = 'fichier', 
+                                nomFichier = f"distances_{model_type}.7z",
+                                toInteger = True)
+        print(f"\n Temps de calcul: {time.time()-t0}/3600")
