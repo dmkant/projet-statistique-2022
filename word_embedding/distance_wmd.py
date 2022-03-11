@@ -62,7 +62,7 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
         distancesDocs = [np.array([0.] * (len(docs) - 1 - i), dtype = typeStockage) for i in range(len(docs) - 1)]
     
     elif retour == 'fichier':
-        path = "../data/distances/"
+        path = "data/distances/"
         cheminFichier = path + 'wmd.txt'
         fichier = open(cheminFichier, 'w')
         fichier.write(('integer' if toInteger else 'float') + '\n')
@@ -127,7 +127,7 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
 def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> DataFrame:
     
     estUneArchive: bool = False
-    path: str = "../data/distances/"
+    path: str = "data/distances/"
     cheminFichier = path + nomFichier
     if cheminFichier[-3:] == '.7z':
         estUneArchive = True
