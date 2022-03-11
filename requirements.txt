@@ -10,3 +10,4 @@ glove-python-binary
 matplotlib
 seaborn
 wordcloud
+py7zr

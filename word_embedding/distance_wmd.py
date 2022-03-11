@@ -1,10 +1,10 @@
 import os
+from typing import Union
 
 import numpy as np
 import py7zr
 from gensim import models
 from pandas import DataFrame
-from typing import Union
 
 
 def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int, posAutresDocs: Union[int ,list[int] ]= None) -> Union[float , list[float]]:
@@ -124,7 +124,7 @@ def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, r
     elif retour == 'liste':
         return distancesDocs
     
-def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> list[np.ndarray]:
+def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> DataFrame:
     
     estUneArchive: bool = False
     path: str = "../data/distances/"
@@ -169,7 +169,7 @@ def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> list[np.n
 if __name__ == "__main__":
     import json
     import time
-    
+
     # load sentences
     with open("data/docs.json") as file:
         docs = json.load(file)
