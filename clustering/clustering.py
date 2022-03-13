@@ -89,7 +89,7 @@ def stats_comparaison_clusters(docs: list[list[str]], clusters: list[int], verbo
         else:
             for cluster in clustersConcernes:
                 ##print(np.any((donneesClusters.cluster == cluster) & (donneesClusters.mot == mot)))
-                valeurRef: float = donneesClusters.loc[(donneesClusters.cluster == cluster) & (donneesClusters.mot == mot), 'freq_cluster'].to_numpy()[0]
+                valeurRef: float = donneesClusters.loc[np.logical_and(donneesClusters.cluster == cluster, donneesClusters.mot == mot), 'freq_cluster'].to_numpy()[0]
                 ##print(valeurRef, donneesClusters.loc[donneesClusters.mot == mot, 'freq_cluster'])
                 var: float = np.sum((donneesClusters.loc[donneesClusters.mot == mot, 'freq_cluster'].to_numpy() - valeurRef)**2) / len(clustersConcernes)
                 ##print(var)
@@ -98,20 +98,37 @@ def stats_comparaison_clusters(docs: list[list[str]], clusters: list[int], verbo
     if verbose:
         # Affichage des mots où l'on retrouve la plus forte variation inter-cluster
         # Le terme doit avoir la plus forte variation et être plus présent dans ce cluster
-        # que dans les autres
+        # que dans les autres 
         print("Mots les plus discriminants")
+
+        print("En général : ", end = '')
+        listeVar = donneesClusters[['mot', 'variations']].copy()
+        listeVar.sort_values(by = 'variations', ascending = False, inplace = True, ignore_index = True)
+
+        motsUtilises = []
+        i: int = 0
+        while len(motsUtilises) < N and i < len(listeVar):
+            ligne = listeVar.iloc[i]
+            #print(i, ligne.mot)
+            if ligne.mot not in motsUtilises:
+                print(f"{ligne.mot} ({ligne.variations})", end = ', ' if len(motsUtilises) != N - 1 else '\n')
+                motsUtilises.append(ligne.mot)
+            i += 1
+
+        del listeVar
         for cluster in nomsClusters:
             
             print(f"cluster {cluster} - ", end = '')
             listeFrequences = donneesClusters.loc[donneesClusters['cluster'] == cluster, ['mot', 'freq_cluster', 'variations']].copy()
             listeFrequences.sort_values(by = 'variations', ascending = False, inplace = True, ignore_index = True)
-            nbMots = 0
+            
 
             for i in range(N):
                 print(f"{listeFrequences.loc[i, 'mot']} ({listeFrequences.loc[i, 'variations']})", end = ', ' if i != N - 1 else '\n')
 
-            """
+            
             i: int = 0
+            nbMots = 0
             while nbMots < N and i < len(listeFrequences):
 
                 mot: str = listeFrequences.loc[i, 'mot']
@@ -121,6 +138,6 @@ def stats_comparaison_clusters(docs: list[list[str]], clusters: list[int], verbo
                     nbMots += 1
                 
                 i += 1
-            """  
+            
 
     return donneesClusters
