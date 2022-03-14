@@ -99,11 +99,11 @@ def evaluation_tag(df_tag_similiraty:pd.DataFrame, start:int=0) -> None:
     
     if start != 0:
         df_old_evaluation = pd.read_csv("data/tunning/evaluation_tags.csv",sep=";")
-        list_windows = df_old_evaluation["windows"].values
-        list_dim_emb = df_old_evaluation["dim_emb"].values
-        list_type_model = df_old_evaluation["type_model"].values
+        list_windows = list(df_old_evaluation["windows"].values)
+        list_dim_emb = list(df_old_evaluation["dim_emb"].values)
+        list_type_model = list(df_old_evaluation["type_model"].values)
         #Evaluation metrics
-        list_tag_mse = df_old_evaluation["tag_mse"].values
+        list_tag_mse = list(df_old_evaluation["tag_mse"].values)
     else:
         list_windows = []
         list_dim_emb = []
@@ -122,11 +122,12 @@ def evaluation_tag(df_tag_similiraty:pd.DataFrame, start:int=0) -> None:
         print(models_filename,": ",list_models_filename.index(models_filename), " : TAGS",end="\r")    
         list_tag_mse.append(tag_evaluation(embed_model=embed_model,df_tag_similiraty=df_tag_similiraty))
         
-        if list_models_filename.index(models_filename) % 5 == 0:
+        if list_models_filename.index(models_filename) % 5 == 0 or list_models_filename.index(models_filename) == len(list_models_filename)-1:
             df_evaluation = pd.DataFrame(list(zip(
                 list_models_filename, list_type_model, list_windows, list_dim_emb,list_tag_mse)),
                                             columns=[ "models_filename", "type_model", "windows", "dim_emb","tag_mse"])
             df_evaluation.to_csv("data/tunning/evaluation_tags.csv",sep=";",index=False)
+            
         
 
 if __name__ == "__main__":
@@ -134,5 +135,5 @@ if __name__ == "__main__":
     # evaluation_BATS()
     
     # Tags evaluation
-    df_tag_similiraty = get_df_tag_similarity(read=False,test_size=3000)
-    evaluation_tag(df_tag_similiraty, start=0)
+    df_tag_similiraty = get_df_tag_similarity(read=True,test_size=3000)
+    evaluation_tag(df_tag_similiraty, start=566)
