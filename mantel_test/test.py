@@ -54,6 +54,9 @@ if compare_mantel == "y":
     print("Lecture distance")
     #Read WMD matrix 
     mat_distance_wmd = lecture_fichier_distances_wmd("distances_cbow.7z")
+    flat_mat_distance_wmd = mat_distance_wmd.values[np.triu_indices(mat_distance_wmd.shape[0])]
+    mat_distance_wmd_thr = np.copy(mat_distance_wmd)
+    mat_distance_wmd_thr[np.where(mat_distance_wmd_thr >= np.quantile(flat_mat_distance_wmd,0.75))] = np.quantile(flat_mat_distance_wmd,0.75)
     
     # mat_distance_wmd = np.random.randint(-2000,2000,size=(9500,9500))
     # mat_distance_wmd = (mat_distance_wmd + mat_distance_wmd.T)/2
@@ -61,6 +64,7 @@ if compare_mantel == "y":
     #On considere mat_distance_wmd comme le doc embedding et on calcule la matrice de distance euclidiennes
     mat_distance_euclidean = euclidean_distances(mat_distance_wmd)
     mat_distance_manhattan = manhattan_distances(mat_distance_wmd)
+    mat_distance_euclidean_thr = euclidean_distances(mat_distance_wmd_thr)
     
     #tsne embedding
     tsne_vec = TSNE(n_components=3,metric="euclidean") 
@@ -102,6 +106,17 @@ if compare_mantel == "y":
     print(f"Temps Parallel module {time.time() - t}")
     print(f"Resulat Manhattan: {resu}")
     
+
+    t = time.time()
+    resu = mantel_parallel.test(mat_distance_wmd_thr,
+                                mat_distance_euclidean_thr,
+                                method="spearman",
+                                perms=300,
+                                parallel=True,
+                                n_jobs=5)
+    print(f"Temps Parallel module {time.time() - t}")
+    print(f"Resulat Euclidiean threashold: {resu}")
+    
     t = time.time()
     resu = mantel_parallel.test(mat_distance_wmd,
                                 mat_distance_tsne_vec,
@@ -121,5 +136,15 @@ if compare_mantel == "y":
                                 n_jobs=5)
     print(f"Temps Parallel module {time.time() - t}")
     print(f"Resulat TSNE Dist: {resu}")
+
+    t = time.time()
+    resu = mantel_parallel.test(mat_distance_wmd_thr,
+                                mat_distance_tsne_dist,
+                                method="spearman",
+                                perms=300,
+                                parallel=True,
+                                n_jobs=5)
+    print(f"Temps Parallel module {time.time() - t}")
+    print(f"Resulat TSNE Dist threshold: {resu}")
 
     
