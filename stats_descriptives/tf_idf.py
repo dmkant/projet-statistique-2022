@@ -1,9 +1,9 @@
-from typing import Union
+from typing import Union,List
 
 import numpy as np
 
 
-def TF(doc: list[str], vocabulaire: Union[list, set] = None, type: str = 'frequence_brute', **kwargs) -> dict:
+def TF(doc: List[str], vocabulaire: Union[list, set] = None, type: str = 'frequence_brute', **kwargs) -> dict:
 
     if vocabulaire is not None:
         vocabulaire = set(vocabulaire).union(set(doc))
@@ -30,7 +30,7 @@ def TF(doc: list[str], vocabulaire: Union[list, set] = None, type: str = 'freque
         maximum:float = max(frequenceBrute.values())
         return {v: K + (1 - K) * frequenceBrute[v] / maximum for v in vocabulaire}
 
-def TF_docs(docs: list[list[str]], vocabulaire: Union[list, set] = None, type: str = 'frequence_brute', **kwargs) -> list[dict]:
+def TF_docs(docs: List[List[str]], vocabulaire: Union[list, set] = None, type: str = 'frequence_brute', **kwargs) -> List[dict]:
 
     tfDocs = []
     for doc in docs:
@@ -38,7 +38,7 @@ def TF_docs(docs: list[list[str]], vocabulaire: Union[list, set] = None, type: s
     
     return tfDocs
 
-def IDF(docs: list[list[str]], vocabulaire: Union[list, set] = None):
+def IDF(docs: List[List[str]], vocabulaire: Union[list, set] = None):
 
     vocabulairePresentDocuments = set()
     for doc in docs:
@@ -60,7 +60,7 @@ def IDF(docs: list[list[str]], vocabulaire: Union[list, set] = None):
     
     return idf
 
-def TF_IDF(docs: list[list[str]], vocabulaire: Union[list, set] = None) -> list[dict]:
+def TF_IDF(docs: List[List[str]], vocabulaire: Union[list, set] = None) -> List[dict]:
 
     idf = IDF(docs, vocabulaire)
     
