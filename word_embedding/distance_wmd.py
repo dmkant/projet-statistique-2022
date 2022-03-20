@@ -1,5 +1,5 @@
 import os
-from typing import Union
+from typing import Union,List
 
 import numpy as np
 import py7zr
@@ -7,7 +7,7 @@ from gensim import models
 from pandas import DataFrame
 
 
-def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int, posAutresDocs: Union[int ,list[int] ]= None) -> Union[float , list[float]]:
+def wmd_docs(docs: List[List[str]], modele: models.KeyedVectors, posDocBase: int, posAutresDocs: Union[int ,List[int] ]= None) -> Union[float , List[float]]:
     """
     Renvoie les distances entre un document et un ensemble d'autres documents
 
@@ -49,7 +49,7 @@ def wmd_docs(docs: list[list[str]], modele: models.KeyedVectors, posDocBase: int
     return distances[0] if len(distances) == 1 else distances
 
 
-def distance_wmd_tous_docs(docs: list[list[str]], modele: models.KeyedVectors, retour = 'fichier', nomFichier = "distances.7z", toInteger = True) -> list[np.array]:
+def distance_wmd_tous_docs(docs: List[List[str]], modele: models.KeyedVectors, retour = 'fichier', nomFichier = "distances.7z", toInteger = True) -> List[np.array]:
     """
     ATTENTION : Peut être très très LONG ! il y a n * (n - 1) / 2 distances à estimer (n la taille du corpus)
     Calcule la distance wmd sur l'entièreté des documents. Calcule pour tout indice
