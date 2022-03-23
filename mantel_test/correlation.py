@@ -8,7 +8,7 @@ import multiprocessing
 from multiprocessing import Process
 
 
-def test(X, Y, perms=10000, method="pearson", tail="two-tail", ignore_nans=False, parallel=False,n_jobs=1):
+def test(X, Y, perms=10000, method="pearson", tail="two-tail",min_corr=1,ignore_nans=False, parallel=False,n_jobs=1):
     """
     Takes two distance matrices (either redundant matrices or condensed vectors)
     and performs a Mantel test. The Mantel test is a significance test of the
@@ -150,7 +150,7 @@ def test(X, Y, perms=10000, method="pearson", tail="two-tail", ignore_nans=False
             correlations = stochastic_test_with_nans(m, perms, X, Y_residuals_as_matrix)
         else:
             if parallel:
-                correlations = stochastic_test_parallel(m, perms, X_residuals, Y_residuals_as_matrix,n_jobs=n_jobs)
+                correlations = stochastic_test_parallel(m, perms, X_residuals, Y_residuals_as_matrix,n_jobs=n_jobs,min_cov = min_corr)
             else:
                 correlations = stochastic_test(m, perms, X_residuals, Y_residuals_as_matrix)
         correlations[0] = sum(X_residuals[finite_Y] * Y_residuals[finite_Y]) / np.sqrt(
@@ -239,23 +239,25 @@ def init_worker(X_residuals, X_residuals_shape, Y_residuals_as_matrix, Y_residua
     var_dict['Y_residuals_permuted'] = Y_residuals_permuted
     var_dict['Y_residuals_permuted_shape'] = Y_residuals_permuted_shape
 
-def compute_covariance(order,i):
+def compute_covariance(order,min_cov):
     # print(f"debut calcul {i}")
     X_np = np.frombuffer(var_dict['X_residuals']).reshape(var_dict['X_residuals_shape'])
     Y_residuals_permuted = np.frombuffer(var_dict['Y_residuals_permuted']).reshape(var_dict['Y_residuals_permuted_shape'])
     Y_residuals_as_matrix = np.frombuffer(var_dict['Y_residuals_as_matrix']).reshape(var_dict['Y_residuals_as_matrix_shape'])
     
-    np.random.shuffle(order)
-    Y_residuals_as_matrix_permuted = Y_residuals_as_matrix[order, :][:, order]
-    spatial.distance._distance_wrap.to_vector_from_squareform_wrap(
-        Y_residuals_as_matrix_permuted, Y_residuals_permuted
-    )
-    covariance = (X_np * Y_residuals_permuted).sum()
+    covariance = 0
+    while(np.abs(covariance) >= min_cov):
+        np.random.shuffle(order)
+        Y_residuals_as_matrix_permuted = Y_residuals_as_matrix[order, :][:, order]
+        spatial.distance._distance_wrap.to_vector_from_squareform_wrap(
+            Y_residuals_as_matrix_permuted, Y_residuals_permuted
+        )
+        covariance = (X_np * Y_residuals_permuted).sum()
     # print(f"fin calcul {i} : covariance: {covariance} -- {X_np[:5]}...{Y_residuals_permuted[:5]}....")
     return covariance
 
 
-def stochastic_test_parallel(m, n, X_residuals, Y_residuals_as_matrix,n_jobs=2):
+def stochastic_test_parallel(m, n, X_residuals, Y_residuals_as_matrix,min_cov=0,n_jobs=2):
     Y_residuals_permuted = np.zeros((m ** 2 - m) // 2)
     orders = [np.arange(m) for _ in range(n)]
     
@@ -276,7 +278,7 @@ def stochastic_test_parallel(m, n, X_residuals, Y_residuals_as_matrix,n_jobs=2):
     with multiprocessing.Pool(initializer=init_worker, initargs=(X_residuals_shared, X_residuals.shape, 
                                                                  Y_residuals_as_matrix_shared, Y_residuals_as_matrix.shape, 
                                                                  Y_residuals_permuted_shared, Y_residuals_permuted.shape)) as pool:
-        results = [pool.apply_async(compute_covariance, (orders[i],i)) for i in range(1,n)]
+        results = [pool.apply_async(compute_covariance, (orders[i],min_cov)) for i in range(1,n)]
         covariances = [0] + [f.get() for f in results]
     
     spatial.distance._distance_wrap.to_vector_from_squareform_wrap(
