@@ -6,8 +6,8 @@ numpy
 plotly
 deep_translator
 sklearn
-glove-python-binary
 matplotlib
 seaborn
 wordcloud
 py7zr
+glove-python-binary
