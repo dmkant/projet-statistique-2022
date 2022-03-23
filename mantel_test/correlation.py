@@ -168,7 +168,7 @@ def test(X, Y, perms=10000, method="pearson", tail="two-tail", ignore_nans=False
 
     z = (r - np.mean(correlations)) / np.std(correlations)
 
-    return r, p, z
+    return r, p, z,correlations
 
 
 def deterministic_test(m, n, X_residuals, Y_residuals_as_matrix):
