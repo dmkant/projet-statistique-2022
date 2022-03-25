@@ -2,11 +2,8 @@ from operator import mod
 from sklearn.manifold import MDS
 import pandas as pd
 import time
-<<<<<<< HEAD
 import multiprocessing
 
-=======
->>>>>>> 125ab95eab46eb815b6b5a42db49b449597e28cb
 
 
 
