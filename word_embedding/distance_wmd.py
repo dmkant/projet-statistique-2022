@@ -1,5 +1,5 @@
 import os
-from typing import Union,List
+from typing import List, Union
 
 import numpy as np
 import py7zr
@@ -135,7 +135,6 @@ def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> DataFrame
             archive.extractall(path = path)
         cheminFichier = path + 'wmd.txt'
     
-    distances = []
 
     fichier = open(cheminFichier, 'r')
     lignesFichier = fichier.readlines()
@@ -170,6 +169,9 @@ if __name__ == "__main__":
     import json
     import time
 
+    cbow = lecture_fichier_distances_wmd('distances_glove.7z')
+    print(cbow.iloc[1,2], cbow.iloc[1,19], cbow.iloc[2,19])
+    """
     # load sentences
     with open("data/docs.json") as file:
         docs = json.load(file)
@@ -183,3 +185,4 @@ if __name__ == "__main__":
                                 nomFichier = f"distances_{model_type}.7z",
                                 toInteger = True)
         print(f"\n Temps de calcul: {time.time()-t0}/3600")
+    """
