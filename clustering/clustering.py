@@ -1,143 +1,252 @@
+import itertools
+from math import ceil
+from sys import stdout
+from typing import Iterator, List, Union
+
 import numpy as np
-from pandas import DataFrame, Series
+import word_embedding.distance_wmd as wmd
+from pandas import DataFrame
+from sklearn.cluster import DBSCAN, KMeans
+from sklearn.metrics import calinski_harabasz_score, silhouette_score
+from sklearn.mixture import GaussianMixture as GMM
+from sklearn_extra.cluster import KMedoids
+
+seed: int = 1234
 
 
-def stats_comparaison_clusters(docs: list[list[str]], clusters: list[int], verbose: bool = True):
+def evolution(nActu: int, nFinal: int, rafraichissement: int = 5) -> None:
 
-    if len(docs) != len(clusters):
-        raise ValueError("La taille du corpus et le nombre de labels ne correspond pas")
+    facteur: float = 100 / (rafraichissement * nFinal)
 
-    nomsClusters = sorted(list(set(clusters)))
-    nomsColonnes: list = ['cluster', 'mot', 'occur_cluster', 'freq_cluster', 'variations']
-    donneesClusters: DataFrame = DataFrame(columns = nomsColonnes)
-    # Recherche des mots présents dans chaque cluster, calcul des occurences 
-    # et de la fréquence de chacuns
-    for k in nomsClusters:
-        docsCluster: list[list[str]] = [docs[i] for i in range(len(clusters)) if clusters[i] == k]
-        motsCluster = {}
-        for doc in docsCluster:
-            for mot in doc:
-                if mot in motsCluster:
-                    motsCluster[mot] += 1
-                else:
-                    motsCluster[mot] = 1
-        
+    if nActu == 0 or ceil(nActu * facteur) != ceil((nActu - 1) * facteur):
+        print(str(ceil(100 * nActu / nFinal)) + '%', end = ' ')
+    
+    if nActu == nFinal - 1:
+        print('\n ')
 
-        nbMots = sum(motsCluster.values())
-        for mot, nbOccurences in motsCluster.items():
-            ligne: Series = Series([k, mot, nbOccurences, 100 * nbOccurences / nbMots, np.inf], index = nomsColonnes)
-            donneesClusters = donneesClusters.append(ligne, ignore_index = True)
+    stdout.flush()
+    
+
+ensembleK: list[int] = [2,3,4,5,6]
+
+# https://scikit-learn-extra.readthedocs.io/en/stable/generated/sklearn_extra.cluster.KMedoids.html
+def selection_meilleur_kmedoides(distance: DataFrame, nbRetours: int = None, verbose: bool = True) -> DataFrame:
+
+    if verbose:
+        print("Recherche optimale - K-médoïdes")
+
+    distance = distance.copy().astype('float')
+
+    ensembleinitialisation: list[str] = ['random', 'heuristic', 'k-medoids++', 'build']
+
+    nbModeles: int = len(ensembleK) * len(ensembleinitialisation)
+
+    colonnes = ['K', 'initialisation', 'val_obj', 'silhouette', 'Cal-Harabasz']
+    resultats = DataFrame(columns = colonnes)
+
+    grille: Iterator = itertools.product(ensembleK, ensembleinitialisation)
+
+    it: int = 0
+    for k, methodeInit in grille:
+
+        if verbose:
+            evolution(it, nbModeles)
+
+        modele = KMedoids(n_clusters = k, init = methodeInit, metric = 'precomputed', random_state = seed)
+        modele.fit(distance)
+
+
+        silhouette: float = silhouette_score(distance, modele.labels_, metric = 'precomputed')
+        calhar: float = None
+        resultats.loc[len(resultats.index)] = [k, methodeInit, modele.inertia_, silhouette, calhar]
+
+        it += 1
+
+    resultats.sort_values(by = 'silhouette', ascending = False, inplace = True)
+
+    if nbRetours is None:
+        nbRetours = len(resultats)
+
+    return resultats.iloc[:nbRetours, :]
+
+# https://scikit-learn.org/stable/modules/generated/sklearn.cluster.KMeans.html
+def selection_meilleur_kmeans(ev: Union[DataFrame, List[np.ndarray]], nbRetours: int = None, verbose: bool = True) -> DataFrame:
     
     if verbose:
-        # Affichage des plus grandes fréquences dans chaque cluster
-        N: int = 5 # Nombre de mots à afficher par cluster
-        #print(f"N = {N}")
-        print("Mots les plus fréquents")
-        print("Clefs : B - Fréquence la + importante parmi tous les clusters | X : Terme présent plusieurs fois dans le top")
-        nomsColonnes2: list = ['mot', 'cluster', 'freq_cluster', 'plus_forte_freq', 'utilisePlusieursFois']
-        donneesRepresentation: DataFrame = DataFrame(columns = nomsColonnes2)
+        print("Recherche optimale - K-means")
 
-        for cluster in nomsClusters:
-            
-            listeFrequences = donneesClusters.loc[donneesClusters['cluster'] == cluster, ['mot','freq_cluster']].copy()
-            listeFrequences.sort_values(by = 'freq_cluster', ascending = False, inplace = True, ignore_index = True)
-            
+    # Transformation des données en liste de vecteurs
+    # plutôt qu'en dataframe
+    if isinstance(ev, DataFrame):
+        ev = [ev.iloc[:,i.to_numpy()] for i in range(ev.shape[1])]
 
-            for i in range(N):
-                mot: str =  listeFrequences.loc[i, 'mot']
-                freq: float = listeFrequences.loc[i, 'freq_cluster']
-                maxFreqTousClusters: float = donneesClusters[donneesClusters["mot"] == mot].freq_cluster.max()
-                ligne: Series = Series([mot, cluster, freq, freq == maxFreqTousClusters, False],
-                 index = nomsColonnes2)
-                donneesRepresentation = donneesRepresentation.append(ligne, ignore_index = True)
-                
+    ensembleinitialisation: list[str] = ['k-means++', 'random']
+    ensembleTolerance: list[float] = [10**-4]
+    nbIter: int = 10
+
+    nbModeles: int = len(ensembleK) * len(ensembleinitialisation) * len(ensembleTolerance)
+
+    colonnes = ['K', 'initialisation', 'nb_iter', 'tolerance', 'val_obj', 'silhouette', 'Cal-Harabasz']
+    resultats = DataFrame(columns = colonnes)
+
+    grille: Iterator = itertools.product(ensembleK, ensembleinitialisation, ensembleTolerance)
+
+    it: int = 0
+    for k, methodeInit, tolerance in grille:
+
+        if verbose:
+            evolution(it, nbModeles)
+
+        modele = KMeans(n_clusters = k, init = methodeInit, n_init = nbIter, tol = tolerance, random_state = seed)
+        modele.fit(ev)
         
-        # On regarde si le mot est présent plusieurs fois dans le top
-        for mot in donneesRepresentation.mot.unique():
-            if donneesRepresentation.mot.value_counts()[mot] > 1:
-                donneesRepresentation.loc[donneesRepresentation.mot == mot, 'utilisePlusieursFois'] = True
+        silhouette: float = silhouette_score(ev, modele.labels_)
+        calhar: float = calinski_harabasz_score(ev, modele.labels_)
+        resultats.loc[len(resultats.index)] = [k, methodeInit, nbIter, tolerance, modele.inertia_, silhouette, calhar]
 
-        for cluster in nomsClusters:
-            
-            print(f"cluster {cluster} - ", end = '')
+        it += 1
 
-            data: DataFrame = donneesRepresentation[donneesRepresentation.cluster == cluster].copy()
-            data.sort_values(by = 'freq_cluster', ascending = False, inplace = True, ignore_index = True)
+    resultats.sort_values(by = 'Cal-Harabasz', ascending = False, inplace = True)
 
-            for i in range(N):
-                ligne = data.loc[i]
-                freq: float = ligne.freq_cluster
-                mot: str = ligne.mot
-                #print(freq, maxFreqTousClusters)
-                clefs: str = ''
-                clefs += 'B' if freq == maxFreqTousClusters else ''
-                clefs += 'X' if ligne.utilisePlusieursFois else ''
-                print(f"{mot} ({freq} %) [{clefs}]",
-                end = ', ' if i != N - 1 else '\n')
+    if nbRetours is None:
+        nbRetours = len(resultats)
 
+    return resultats.iloc[:nbRetours, :]
 
-    # Calcul de la 'variance' de chaque mot afin de trouver quel 
-    # mot discrimine le plus sur chaque cluster
-    for mot in donneesClusters['mot'].unique():
-
-        masque = donneesClusters['mot'] == mot
-        clustersConcernes: Series = donneesClusters.loc[masque, 'cluster']
-
-        if len(clustersConcernes) == 1:
-            donneesClusters.loc[masque, 'variations'] = 0.
-
-        else:
-            for cluster in clustersConcernes:
-                ##print(np.any((donneesClusters.cluster == cluster) & (donneesClusters.mot == mot)))
-                valeurRef: float = donneesClusters.loc[np.logical_and(donneesClusters.cluster == cluster, donneesClusters.mot == mot), 'freq_cluster'].to_numpy()[0]
-                ##print(valeurRef, donneesClusters.loc[donneesClusters.mot == mot, 'freq_cluster'])
-                var: float = np.sum((donneesClusters.loc[donneesClusters.mot == mot, 'freq_cluster'].to_numpy() - valeurRef)**2) / len(clustersConcernes)
-                ##print(var)
-                donneesClusters.loc[(donneesClusters.cluster == cluster) & (donneesClusters.mot == mot), 'variations'] = var
+# https://scikit-learn.org/stable/modules/generated/sklearn.cluster.DBSCAN.html
+def selection_meilleur_dbscan(data: Union[DataFrame, List[np.ndarray]], nbRetours: int = None,
+type_data: str = 'ev', n_jobs: int = 6, verbose: bool = True) -> DataFrame:
 
     if verbose:
-        # Affichage des mots où l'on retrouve la plus forte variation inter-cluster
-        # Le terme doit avoir la plus forte variation et être plus présent dans ce cluster
-        # que dans les autres 
-        print("Mots les plus discriminants")
+        print("Recherche optimale - DBScan")
 
-        print("En général : ", end = '')
-        listeVar = donneesClusters[['mot', 'variations']].copy()
-        listeVar.sort_values(by = 'variations', ascending = False, inplace = True, ignore_index = True)
+    listeVoisinage: range = range(2,10)
+    if type_data == 'distance':
 
-        motsUtilises = []
-        i: int = 0
-        while len(motsUtilises) < N and i < len(listeVar):
-            ligne = listeVar.iloc[i]
-            #print(i, ligne.mot)
-            if ligne.mot not in motsUtilises:
-                print(f"{ligne.mot} ({ligne.variations})", end = ', ' if len(motsUtilises) != N - 1 else '\n')
-                motsUtilises.append(ligne.mot)
-            i += 1
+        listeDistances = ['precomputed']
+        # Normalisation des données
+        data = data.copy() / np.max(data.to_numpy().flat)
 
-        del listeVar
-        for cluster in nomsClusters:
+    elif type_data == 'ev':
+
+        # Transformation des données en liste de vecteurs
+        # plutôt qu'en dataframe
+        if isinstance(data, DataFrame):
+            data = [data.iloc[:,i.to_numpy()] for i in range(data.shape[1])]
+        listeDistances: list[str] = ['euclidean', 'manhattan', 'chebyshev']
+
+    listeRayons: list[float] = [.25, .5, .75, 1,5,10]
+
+    nbModeles = len(listeVoisinage) * len(listeDistances) * len(listeRayons)
+    grille = itertools.product(listeVoisinage, listeDistances, listeRayons)
+
+    colonnes = ['voisinage', 'rayon', 'distance', 'K', 'silhouette', 'Cal-Harabasz', 'non_classes']
+    resultats = DataFrame(columns = colonnes)
+
+    it: int = 0
+    for voisinage, distance, rayon in grille:
+
+        if verbose:
+            evolution(it, nbModeles)
+
+        modele = DBSCAN(eps = rayon, min_samples = voisinage, metric = distance, n_jobs = n_jobs)
+        modele.fit(data)
+
+        k: int = len(set(modele.labels_)) - (0 if -1 not in modele.labels_ else 1)
+        if k == 1:
+
+            silhouette: float = None
+            calhar: float = None
+
+        else:
+
+            elementsClasses: np.ndarray[int] = np.arange(len(modele.labels_))[modele.labels_ != -1]
+            if isinstance(data, DataFrame):
+
+                dataClasses = data.iloc[elementsClasses, elementsClasses] if type_data == 'distance' else data.iloc[:, elementsClasses]
+
+            else:
+                dataClasses = data[elementsClasses]
             
-            print(f"cluster {cluster} - ", end = '')
-            listeFrequences = donneesClusters.loc[donneesClusters['cluster'] == cluster, ['mot', 'freq_cluster', 'variations']].copy()
-            listeFrequences.sort_values(by = 'variations', ascending = False, inplace = True, ignore_index = True)
-            
+            labelsClasses = modele.labels_[elementsClasses]
 
-            for i in range(N):
-                print(f"{listeFrequences.loc[i, 'mot']} ({listeFrequences.loc[i, 'variations']})", end = ', ' if i != N - 1 else '\n')
 
-            
-            i: int = 0
-            nbMots = 0
-            while nbMots < N and i < len(listeFrequences):
+            kwargs = {} if type_data == 'ev' else {'metric': 'precomputed'}
+            silhouette: float = silhouette_score(dataClasses, labelsClasses, **kwargs)
 
-                mot: str = listeFrequences.loc[i, 'mot']
-                if listeFrequences.loc[i, 'freq_cluster'] == donneesClusters.loc[donneesClusters.mot == 'mot'].freq_cluster.max():
-                    
-                    print(f"{listeFrequences.loc[i, 'mot']} ({listeFrequences.loc[i, 'variations']})", end = ', ' if nbMots != N - 1 else '\n')
-                    nbMots += 1
-                
-                i += 1
-            
+            if type_data == 'ev':
+                calhar: float = calinski_harabasz_score(dataClasses, labelsClasses)
 
-    return donneesClusters
+            else:
+                calhar: float = None
+
+        resultats.loc[len(resultats.index)] = [voisinage, rayon, distance, len(set(modele.labels_)), silhouette, calhar, np.sum(modele.labels_ == -1)]
+
+        it += 1
+
+    resultats.sort_values(by = 'silhouette', ascending = False, inplace = True)
+
+    if nbRetours is None:
+        nbRetours = len(resultats)
+
+    return resultats.iloc[:nbRetours, :]
+
+# https://scikit-learn.org/0.16/modules/generated/sklearn.mixture.GMM.html
+def selection_meilleur_GMM(ev: Union[DataFrame, List[np.ndarray]], nbRetours: int = None, verbose: bool = True) -> DataFrame:
+
+    if verbose:
+        print("Recherche optimale - GMM")
+    # Transformation des données en liste de vecteurs
+    # plutôt qu'en dataframe
+    if isinstance(ev, DataFrame):
+        ev = [ev.iloc[:,i.to_numpy()] for i in range(ev.shape[1])]
+
+    ensembleK: list[int] = [2,3,4,5,6]
+    ensembleCovariances: list[str] = ['full', 'tied', 'diag', 'spherical']
+    nbIter: int = 10
+
+    nbModeles: int = len(ensembleK) * len(ensembleCovariances)
+
+    grille = itertools.product(ensembleK, ensembleCovariances)
+
+    colonnes = ['K', 'covariance', 'silhouette', 'Cal-Harabasz', 'BIC']
+    resultats = DataFrame(columns = colonnes)
+
+    it: int = 0
+    for K, covariance in grille:
+
+        if verbose:
+            evolution(it, nbModeles)
+
+        modele: GMM = GMM(n_components = K, covariance_type = covariance, n_init = nbIter, random_state = seed)
+        labels = modele.fit_predict(ev)
+
+        silhouette: float = silhouette_score(ev, labels)
+        calhar: float = calinski_harabasz_score(ev, labels)
+        BIC: float = modele.bic(np.array(ev))
+
+        resultats.loc[len(resultats.index)] = [K, covariance, silhouette, calhar, BIC]
+
+        it += 1
+
+    resultats.sort_values(by = 'BIC', inplace = True)
+
+    if nbRetours is None:
+        nbRetours = len(resultats)
+
+    return resultats.iloc[:nbRetours, :]
+
+
+
+if __name__ == '__main__':
+    from gensim.models import Word2Vec
+
+
+    w2vec: Word2Vec = Word2Vec.load("data/w2vec.bin")
+    distances = wmd.lecture_fichier_distances_wmd('distances_cbow.7z')
+    # espace vectoriel généré des mots
+    ev = [w2vec.wv[v] for v in w2vec.wv.index_to_key]
+    print(selection_meilleur_GMM(ev))
+    print(selection_meilleur_kmeans(ev))
+    print(selection_meilleur_kmedoides(distances))
+    print(selection_meilleur_dbscan(distances, type_data = 'distance'))

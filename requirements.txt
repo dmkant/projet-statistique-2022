@@ -10,4 +10,7 @@ matplotlib
 seaborn
 wordcloud
 py7zr
+ClusterEnsembles
+scikit-learn-extra
 glove-python-binary
+
