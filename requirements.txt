@@ -11,3 +11,4 @@ seaborn
 wordcloud
 py7zr
 glove-python-binary
+scikit-learn-extra

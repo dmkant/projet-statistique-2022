@@ -135,7 +135,6 @@ def lecture_fichier_distances_wmd(nomFichier: str = "distances.7z") -> DataFrame
             archive.extractall(path = path)
         cheminFichier = path + 'wmd.txt'
     
-    distances = []
 
     fichier = open(cheminFichier, 'r')
     lignesFichier = fichier.readlines()
