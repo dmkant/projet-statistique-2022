@@ -12,5 +12,6 @@ wordcloud
 py7zr
 ClusterEnsembles
 scikit-learn-extra
+hdbscan
 glove-python-binary
 

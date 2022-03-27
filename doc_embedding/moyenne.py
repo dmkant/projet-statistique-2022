@@ -9,7 +9,7 @@ sys.path.append('..')
 from stats_descriptives import tf_idf as TFIDF
 
 
-def word_emb_vers_doc_emb_moyenne(docs: List[List[str]], modele: models.KeyedVectors, methode: str = 'TF-IDF') -> List[np.ndarray]:
+def word_emb_vers_doc_emb_moyenne(docs: List[List[str]], modele: models.KeyedVectors, methode: str = 'TF-IDF') -> np.ndarray:
 
     moyennes = []
     if methode == 'TF-IDF':
@@ -43,4 +43,4 @@ def word_emb_vers_doc_emb_moyenne(docs: List[List[str]], modele: models.KeyedVec
         moyennes.append(representation)
    
    
-    return moyennes
+    return np.array(moyennes)
