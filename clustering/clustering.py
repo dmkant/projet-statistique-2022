@@ -70,9 +70,6 @@ def selection_meilleur_kmedoides(
         list_labels.append(np.copy(modele.labels_))
 
 
-        silhouette: float = silhouette_score(distance, modele.labels_, metric = 'precomputed')
-        calhar: float = None
-        DBCV: float = HD.validity_index(np.array(distance).astype(np.float64), modele.labels_,metric='precomputed',d=init_dim)
         calhar, silhouette, DBCV = _evaluation_clustering(labels=modele.labels_,data=distance,metric='precomputed',emb_dim=init_dim)
         resultats.loc[len(resultats.index)] = [k, methodeInit, modele.inertia_, silhouette, calhar,DBCV]
 
@@ -319,13 +316,14 @@ def Ensemble_Clustering(
     n_jobs: int = 6, 
     verbose: bool = True,
     init_dim:int = 100,
+    allLabels:np.ndarray = None,
     listAlgo:List[str] = ["kmeans","gmm","hdbscan"],
     ensembleK: List[int] = [2, 3, 4, 5, 6], 
     ensembleCovariances: List[str] = ['full', 'tied', 'diag', 'spherical'],
     listeMinClusterSize: Union[range , List[int]] = range(10, 50), 
     listeDistances: Union[str ,List[str]] = ['euclidean', 'manhattan', 'chebyshev'],
     listSolver:Union[List[str],str] = "hbgf",
-    listeK: List[int]=[None])-> Tuple[DataFrame,np.ndarray]:
+    listeK: Union[range , List[int]]=[None])-> Tuple[DataFrame,np.ndarray]:
     
     if type(listeDistances) not in [list,str]:
         raise ValueError("'listDistances' doit etre une liste")
@@ -348,36 +346,43 @@ def Ensemble_Clustering(
 
     if verbose:
         print("Recherche optimale - Concensus Clustering")
-        print("Entrainement des algo de clustering")
     
-    allLabels = []
-    if 'kmeans' in listAlgo:
-        resultatKmean, listLabelsKmeans = selection_meilleur_kmeans(data,nbRetours=nbRetours,verbose=verbose,ensembleK=ensembleK)
-        allLabels.append(listLabelsKmeans)
-        if verbose:
-            print('Kmeans')
-            print(resultatKmean)
-    
-    if 'gmm' in listAlgo:
-        resultatGMM, listLabelsGMM = selection_meilleur_GMM(data,nbRetours=nbRetours,verbose=verbose,ensembleK=ensembleK,ensembleCovariances=ensembleCovariances)
-        allLabels.append(listLabelsGMM)
-        if verbose:
-            print('GMM')
-            print(resultatGMM)    
-    
-    if 'hdbscan' in listAlgo:
-        #a ameliorer
-        if "precomputed" in listeDistances:
-            resultatHdbscan, listLabelsHdbscan = selection_meilleur_hdbscan(distance,nbRetours=nbRetours,verbose=verbose, n_jobs=n_jobs,init_dim=init_dim,listeDistances="precomputed",listeMinClusterSize=listeMinClusterSize)
-        else:
-            resultatHdbscan, listLabelsHdbscan = selection_meilleur_hdbscan(data,nbRetours=nbRetours,verbose=verbose, n_jobs=n_jobs,init_dim=init_dim,listeDistances=listeDistances,listeMinClusterSize=listeMinClusterSize)
+    if allLabels is None:
+        allLabels = []
+        if 'kmeans' in listAlgo:
+            resultatKmean, listLabelsKmeans = selection_meilleur_kmeans(data,nbRetours=nbRetours,verbose=verbose,ensembleK=ensembleK)
+            allLabels.append(listLabelsKmeans)
+            if verbose:
+                print('Kmeans')
+                print(resultatKmean)
         
-        allLabels.append(listLabelsHdbscan)
-        if verbose:
-            print('HDBSCAN')
-            print(resultatHdbscan)
+        if 'gmm' in listAlgo:
+            resultatGMM, listLabelsGMM = selection_meilleur_GMM(data,nbRetours=nbRetours,verbose=verbose,ensembleK=ensembleK,ensembleCovariances=ensembleCovariances)
+            allLabels.append(listLabelsGMM)
+            if verbose:
+                print('GMM')
+                print(resultatGMM)    
+        
+        if 'hdbscan' in listAlgo:
+            #a ameliorer
+            if "precomputed" in listeDistances:
+                resultatHdbscan, listLabelsHdbscan = selection_meilleur_hdbscan(distance,nbRetours=nbRetours,verbose=verbose, n_jobs=n_jobs,init_dim=init_dim,listeDistances="precomputed",listeMinClusterSize=listeMinClusterSize)
+            else:
+                resultatHdbscan, listLabelsHdbscan = selection_meilleur_hdbscan(data,nbRetours=nbRetours,verbose=verbose, n_jobs=n_jobs,init_dim=init_dim,listeDistances=listeDistances,listeMinClusterSize=listeMinClusterSize)
+            
+            allLabels.append(listLabelsHdbscan)
+            if verbose:
+                print('HDBSCAN')
+                print(resultatHdbscan)
 
-    allLabels = np.concatenate(allLabels,axis=0)
+        allLabels = np.concatenate(allLabels,axis=0)
+    else:
+        if type(allLabels) == list:
+            warnings("Conversion de 'allLabels' en ndarray")
+            allLabels = np.array(allLabels)
+        if type(allLabels) != np.ndarray:
+            raise ValueError("'allLabels' doit etre une liste")
+
 
     nbModeles: int = len(listeK) * len(listSolver)
     colonnes = ['K', 'Solver','silhouette', 'Cal-Harabasz','DBCV','ANMI']
@@ -471,5 +476,8 @@ if __name__ == '__main__':
         listeDistances="precomputed", 
         nbRetours=5,
         listSolver=["mcla","hbgf"],
-        init_dim=moy_embedding_tfidf.shape[1])
+        listeMinClusterSize=range(10,15),
+        listeK = range(2,7),
+        init_dim=moy_embedding_tfidf.shape[1]
         )
+    )
