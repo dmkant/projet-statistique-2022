@@ -60,7 +60,7 @@ def MDS_parallel(word_embedding_model,n_jobs=2):
 
 
 use_parrallel = True
-word_embedding_model = ["cbow","skipgram","glove"]
+word_embedding_model = ["glove2"]
 
 if use_parrallel:
     MDS_parallel(word_embedding_model)    
@@ -73,7 +73,7 @@ else:
     list_time = []
     for model in word_embedding_model:
         mat_distance_wmd = np.array(lecture_fichier_distances_wmd(f"distances_{model}.7z"))
-        for dim in range(1,6):
+        for dim in range(10000,20001,1000):
             mds_model = MDS(n_components=dim, dissimilarity="precomputed",n_jobs=-1)
             print(f"{model}:{dim} fit MDS",end="\r")
             t0 = time.time()
@@ -94,6 +94,6 @@ else:
             df_evaluation = pd.DataFrame(list(zip(
                     list_model, list_dim, list_corr_p,list_corr_s, list_stress,list_time)),
                                                 columns=[ "model", "dim", "corr_p","corr_s","stress","time"])
-            df_evaluation.to_csv("data/tunning/mds_wmd.csv",sep=";",index=False)
+            df_evaluation.to_csv(f"data/tunning/MDS/mds_wmd_{model}3.csv",sep=";",index=False)
 
 
