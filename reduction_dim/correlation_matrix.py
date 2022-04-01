@@ -1,6 +1,11 @@
 import numpy as np
 import scipy.stats
 
+def flat_matrix(X_mat:np.ndarray):
+    flat_index = np.triu_indices(X_mat.shape[0])
+    X_mat_flat = X_mat[flat_index]
+
+    return X_mat_flat
 
 def correlation_epsilon(
     initial_distance: np.array,
