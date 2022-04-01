@@ -43,7 +43,7 @@ def MDS_evaluation(dim):
     print([model, dim, r_pearson,r_spearman, mds_model.stress_,t1])    
     return [model, dim, r_pearson,r_spearman, mds_model.stress_,t1]
 
-def MDS_parallel(word_embedding_model,n_jobs=2):
+def MDS_parallel(word_embedding_model,n_jobs=5):
 
     for model in word_embedding_model:
         print("lecture")
@@ -52,14 +52,14 @@ def MDS_parallel(word_embedding_model,n_jobs=2):
         mat_distance_wmd_np = np.frombuffer(mat_distance_wmd_shared).reshape(mat_distance_wmd.shape)
         np.copyto(mat_distance_wmd_np, mat_distance_wmd)        
         
-        with multiprocessing.Pool(initializer=init_worker, initargs=(mat_distance_wmd_shared, mat_distance_wmd.shape, model)) as pool:
-            results = [pool.apply_async(MDS_evaluation,(dim,)) for dim in range(1500,10001,500) ]
+        with multiprocessing.Pool(processes=n_jobs,initializer=init_worker, initargs=(mat_distance_wmd_shared, mat_distance_wmd.shape, model)) as pool:
+            results = [pool.apply_async(MDS_evaluation,(dim,)) for dim in [i for i in range(1,6)] + [5,20,50,100] ]
             df_evaluation = pd.DataFrame([f.get() for f in results],
                                          columns=[ "model", "dim", "corr_p","corr_s","stress","time"])
             df_evaluation.to_csv(f"data/tunning/MDS/mds_wmd_{model}2.csv",sep=";",index=False)
 
 
-use_parrallel = True
+use_parrallel = False
 word_embedding_model = ["glove2"]
 
 if use_parrallel:
@@ -72,9 +72,10 @@ else:
     list_stress = []
     list_time = []
     for model in word_embedding_model:
+        print("lecture distance")
         mat_distance_wmd = np.array(lecture_fichier_distances_wmd(f"distances_{model}.7z"))
-        for dim in range(10000,20001,1000):
-            mds_model = MDS(n_components=dim, dissimilarity="precomputed",n_jobs=-1)
+        for dim in [i for i in range(1,6)] + [5,20,50,100]:
+            mds_model = MDS(n_components=dim, dissimilarity="precomputed")
             print(f"{model}:{dim} fit MDS",end="\r")
             t0 = time.time()
             mds_embedding = mds_model.fit_transform(np.array(mat_distance_wmd))
