@@ -139,6 +139,7 @@ def selection_meilleur_dbscan(
     n_jobs: int = 6, 
     verbose: bool = True,
     init_dim:int = 100,
+    normalizeDistance:bool = True,
     listeRayons:Union[range,List[float]] = [.25, .5, .75, 1,5,10],
     listeVoisinage:Union[range,List[int]]=range(2,10),
     listeDistances:Union[str,List[str]]=['euclidean', 'manhattan', 'chebyshev']) -> Tuple[DataFrame,np.ndarray]:
@@ -158,7 +159,7 @@ def selection_meilleur_dbscan(
         raise ValueError("'listeRayons' et 'listeVoisinage' doiventt etre des listes ou des ranges")
     
 
-    if listeDistances == ['precomputed']:
+    if listeDistances == ['precomputed'] and normalizeDistance:
         # Normalisation des données
         data = data.copy() / np.max(data.to_numpy().flat)
     else:
@@ -205,6 +206,7 @@ def selection_meilleur_hdbscan(
     n_jobs: int = 6,
     verbose: bool = True,init_dim:int = 100,
     listeMinClusterSize:Union[range,List[int]]=range(10,50),
+    listeVoisinage:Union[range,List[int]]=range(2,10),
     listeDistances:Union[str,List[str]]=['euclidean', 'manhattan', 'chebyshev']) -> Tuple[DataFrame,np.ndarray]:
 
     if verbose:
@@ -229,26 +231,26 @@ def selection_meilleur_hdbscan(
             data = [data.iloc[:,i.to_numpy()] for i in range(data.shape[1])]
 
 
-    nbModeles = len(listeMinClusterSize) * len(listeDistances)
-    grille = itertools.product(listeMinClusterSize, listeDistances)
+    nbModeles = len(listeMinClusterSize) * len(listeDistances)*len(listeVoisinage)
+    grille = itertools.product(listeVoisinage,listeMinClusterSize, listeDistances)
 
-    colonnes = ['min_cluster_size', 'distance', 'K', 'silhouette', 'Cal-Harabasz','DBCV', 'non_classes']
+    colonnes = ['voisinage','min_cluster_size', 'distance', 'K', 'silhouette', 'Cal-Harabasz','DBCV', 'non_classes']
     resultats = DataFrame(columns = colonnes)
     list_labels = []
 
     it: int = 0
-    for min_cluster_size, distance in grille:
+    for voisinage,min_cluster_size, distance in grille:
         metric = "euclidean" if distance != "precomputed" else distance
         if verbose:
             evolution(it, nbModeles)
 
 
-        clusterer = HD.HDBSCAN(min_cluster_size=min_cluster_size, metric = distance,core_dist_n_jobs= n_jobs)
+        clusterer = HD.HDBSCAN(min_cluster_size=min_cluster_size, metric = distance,min_samples=voisinage,core_dist_n_jobs= n_jobs)
         cluster_labels = clusterer.fit_predict(np.array(data).astype(np.float64))
         list_labels.append(cluster_labels)
 
         calhar, silhouette, DBCV = _evaluation_clustering(labels=cluster_labels,data=data,metric=metric,emb_dim=init_dim)
-        resultats.loc[len(resultats.index)] = [min_cluster_size, distance, len(set(cluster_labels)), silhouette, calhar, DBCV ,np.sum(cluster_labels == -1)]
+        resultats.loc[len(resultats.index)] = [voisinage,min_cluster_size, distance, len(set(cluster_labels)), silhouette, calhar, DBCV ,np.sum(cluster_labels == -1)]
 
         it += 1
 
@@ -428,12 +430,14 @@ def _evaluation_clustering(
 
     try:
         DBCV: float = HD.validity_index(np.array(data).astype(np.float64), labels,d=emb_dim,metric=metric)
-    except:
+    except Exception as e:
+        print("DBCV",e)
         DBCV = None
     
     try:
         silhouette: float = silhouette_score(np.array(dataClasses).astype(np.float64), labelsClasses,metric=metric)
     except Exception as e:
+        print("Silhouette",e)
         silhouette = None
     
     if metric != "precomputed":
