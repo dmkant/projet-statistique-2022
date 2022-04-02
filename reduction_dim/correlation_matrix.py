@@ -1,7 +1,9 @@
 import numpy as np
 import scipy.stats
 
-def flat_matrix(X_mat:np.ndarray):
+def flat_matrix(X_mat:np.ndarray) -> np.ndarray:
+    if len(X_mat.shape) != 2:
+        raise ValueError("X_mat doit etre une matrice")
     flat_index = np.triu_indices(X_mat.shape[0])
     X_mat_flat = X_mat[flat_index]
 
