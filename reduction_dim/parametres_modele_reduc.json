@@ -1,0 +1,17 @@
+{"moyenne_tfidf":[{
+    "cbow": 200,
+    "glove": 200,
+    "glove2": 200,
+    "skipgram": 200
+}],
+"moyenne_tf":[{
+    "cbow": 200,
+    "glove": 200,
+    "glove2": 200,
+    "skipgram": 200
+}],
+"mds":[{
+    "cbow":200,
+    "skipgram":200
+}]
+}
