@@ -425,8 +425,11 @@ def _evaluation_clustering(
         dataClasses = data.iloc[elementsClasses, elementsClasses] if metric == "precomputed" else data.iloc[:, elementsClasses]
 
     else:
-        dataClasses = data[elementsClasses]
-    labelsClasses = labels[elementsClasses]
+        # dataClasses = data[elementsClasses]
+        noise_index = np.where(labels[0] == -1)
+        dataClasses  = np.delete(np.delete(data, noise_index, 0),noise_index,1)
+        labelsClasses = np.delete(labels,noise_index,0)
+    # labelsClasses = labels[elementsClasses]
 
     try:
         DBCV: float = HD.validity_index(np.array(data).astype(np.float64), labels,d=emb_dim,metric=metric)
@@ -435,7 +438,10 @@ def _evaluation_clustering(
         DBCV = None
     
     try:
-        silhouette: float = silhouette_score(np.array(dataClasses).astype(np.float64), labelsClasses,metric=metric)
+        if len(np.unique(labelsClasses))>1:
+            silhouette: float = silhouette_score(np.array(dataClasses).astype(np.float64), labelsClasses,metric=metric)
+        else:
+            silhouette = None
     except Exception as e:
         print("Silhouette",e)
         silhouette = None
