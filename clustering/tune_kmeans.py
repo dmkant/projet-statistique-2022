@@ -29,7 +29,7 @@ def init_worker(mat_doc_embedding,mat_doc_embedding_shape,type_doc_embedding,typ
     var_dict["type_word_embedding"] = type_word_embedding
 
 
-def GMM_evaluation(perplexity):
+def KMEANS_evaluation(perplexity,init_dim):
     mat_doc_embedding_np = np.frombuffer(var_dict['mat_doc_embedding']).reshape(var_dict['mat_doc_embedding_shape'])
     ensembleK = range(2,15)
     
@@ -37,9 +37,15 @@ def GMM_evaluation(perplexity):
         metric = "precomputed" if var_dict["type_doc_embedding"] == "WMD_Distance" else "euclidean"
         tsne = TSNE(n_components = 2, perplexity=perplexity, n_iter=2000, random_state=0,metric=metric)
         tsne_moy = tsne.fit_transform(mat_doc_embedding_np)
-        df_result,_ = CL.selection_meilleur_GMM(ev=tsne_moy,ensembleK=ensembleK)
+        df_result,_ = CL.selection_meilleur_kmeans(ev=tsne_moy,ensembleK=ensembleK)
+        df_result["clustering"] = "kmeans"
     else:
-        df_result,_ = CL.selection_meilleur_GMM(ev=mat_doc_embedding_np,ensembleK=ensembleK)
+        if var_dict["type_doc_embedding"] == "WMD_Distance":
+            df_result,_ = CL.selection_meilleur_kmedoides(distance=mat_doc_embedding_np,ensembleK=ensembleK,init_dim=init_dim)
+            df_result["clustering"] = "kmedoides"
+        else:
+            df_result,_ = CL.selection_meilleur_kmeans(ev=mat_doc_embedding_np,ensembleK=ensembleK)
+            df_result["clustering"] = "kmeans"
 
     df_result["perplexity"] = perplexity
     df_result["wordEmbedding"] = var_dict["type_word_embedding"]
@@ -50,7 +56,7 @@ def GMM_evaluation(perplexity):
 
     return df_result
 
-def GMM_parallel(word_embedding_model,list_perplexity,n_jobs=5):
+def KMEANS_parallel(word_embedding_model,list_perplexity,n_jobs=5):
     with open('data/docs.json', encoding = "utf8") as f:
         docs = json.load(f)
 
@@ -65,35 +71,31 @@ def GMM_parallel(word_embedding_model,list_perplexity,n_jobs=5):
         if model != "glove":
             dict_mat_embedding["WMD_MDS"] = np.array(pd.read_csv(f"data/tunning/MDS/{model}_mds_embedding.csv",sep=";",header=0))
         dict_mat_embedding["WMD_Distance"] = np.array(lecture_fichier_distances_wmd(f"distances_{model}.7z"))
+        
+        init_dim = dict_mat_embedding["WMD_MDS"].shape[1] if model != "glove" else dict_mat_embedding["Moyenne_TF"].shape[1]
 
         for type_doc_embedding,mat_doc_embedding in dict_mat_embedding.items():
             print(f"entrainement: {type_doc_embedding}")
-
-            if type_doc_embedding == "WMD_Distance":
-                list_perplexity2 = [perplexity for perplexity in list_perplexity if perplexity is not None]
-            else:
-                list_perplexity2 = [perplexity for perplexity in list_perplexity]
-
 
             mat_doc_embedding_shared = multiprocessing.RawArray('d', mat_doc_embedding.shape[0]*mat_doc_embedding.shape[1])
             mat_doc_embedding_np = np.frombuffer(mat_doc_embedding_shared).reshape(mat_doc_embedding.shape)
             np.copyto(mat_doc_embedding_np, mat_doc_embedding)        
             
             with multiprocessing.Pool(processes=n_jobs,initializer=init_worker, initargs=(mat_doc_embedding_shared,mat_doc_embedding.shape,type_doc_embedding,model)) as pool:
-                results = [pool.apply_async(GMM_evaluation,(perplexity,)) for perplexity in list_perplexity2 ]
+                results = [pool.apply_async(KMEANS_evaluation,(perplexity,init_dim)) for perplexity in list_perplexity ]
                 df_evaluation = pd.concat([f.get() for f in results])
-                df_evaluation.to_csv(f"data/tunning/clustering/GMM/gmm_{model}_{type_doc_embedding}.csv",sep=";",index=False)
+                df_evaluation.to_csv(f"data/tunning/clustering/KMEANS/kmeans_{model}_{type_doc_embedding}.csv",sep=";",index=False)
 
                 list_df_evaluation += [df_evaluation]
-                pd.concat(list_df_evaluation).to_csv(f"data/tunning/clustering/gmm.csv",sep=";",index=False)
+                pd.concat(list_df_evaluation).to_csv(f"data/tunning/clustering/kmeans.csv",sep=";",index=False)
 
 
 use_parrallel = True
-word_embedding_model = ["cbow","glove","skipgram"]
+word_embedding_model = ["glove","skipgram"]
 n_jobs = 25
 list_perplexity = [None,50,75,100,125,150,200]
 
 if use_parrallel:
-    GMM_parallel(word_embedding_model,list_perplexity,n_jobs=n_jobs)    
+    KMEANS_parallel(word_embedding_model,list_perplexity,n_jobs=n_jobs)    
 else:
     pass
