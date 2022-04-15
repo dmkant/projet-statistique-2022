@@ -354,6 +354,9 @@ def Ensemble_Clustering(
         if 'kmeans' in listAlgo:
             resultatKmean, listLabelsKmeans = selection_meilleur_kmeans(data,nbRetours=nbRetours,verbose=verbose,ensembleK=ensembleK)
             allLabels.append(listLabelsKmeans)
+            if distance is not None:
+                resultatKmedoides, listLabelsKmedoides = selection_meilleur_kmedoides(distance=distance,ensembleK=ensembleK,init_dim=init_dim)
+                allLabels.append(listLabelsKmedoides)
             if verbose:
                 print('Kmeans')
                 print(resultatKmean)
