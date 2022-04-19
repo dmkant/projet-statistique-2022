@@ -179,7 +179,7 @@ def evaluation_BATS():
         list_ref_err_dis_cos,list_ref_rmse_dis_cos,list_ref_err_moy_freq,list_ref_rmse_freq)),
                                     columns=[ "models_filename", "type_model", "windows", "dim_emb",
         "ref_err_dis_cos","ref_rmse_dis_cos","ref_err_moy_freq","ref_rmse_freq"])
-    df_evaluation.to_csv("data/tunning/evaluation_bats.csv",sep=";",index=False)
+    df_evaluation.to_csv("data/tuning/evaluation_bats.csv",sep=";",index=False)
 
 
 if __name__ == '__main__':

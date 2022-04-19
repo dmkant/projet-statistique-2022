@@ -56,7 +56,7 @@ def MDS_parallel(word_embedding_model,n_jobs=5):
             results = [pool.apply_async(MDS_evaluation,(dim,)) for dim in [i for i in range(1,6)] + [5,20,50,100] ]
             df_evaluation = pd.DataFrame([f.get() for f in results],
                                          columns=[ "model", "dim", "corr_p","corr_s","stress","time"])
-            df_evaluation.to_csv(f"data/tunning/MDS/mds_wmd_{model}2.csv",sep=";",index=False)
+            df_evaluation.to_csv(f"data/tuning/MDS/mds_wmd_{model}2.csv",sep=";",index=False)
 
 
 use_parrallel = False
@@ -95,6 +95,6 @@ else:
             df_evaluation = pd.DataFrame(list(zip(
                     list_model, list_dim, list_corr_p,list_corr_s, list_stress,list_time)),
                                                 columns=[ "model", "dim", "corr_p","corr_s","stress","time"])
-            df_evaluation.to_csv(f"data/tunning/MDS/mds_wmd_{model}3.csv",sep=";",index=False)
+            df_evaluation.to_csv(f"data/tuning/MDS/mds_wmd_{model}3.csv",sep=";",index=False)
 
 

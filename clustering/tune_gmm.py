@@ -57,13 +57,13 @@ def GMM_parallel(word_embedding_model,list_perplexity,n_jobs=5):
     list_df_evaluation = []
     for model in word_embedding_model:
         print(f"{model} : lecture des matrices...")
-        ev = models.KeyedVectors.load_word2vec_format(f"data/tunning/{model}.kv")
+        ev = models.KeyedVectors.load_word2vec_format(f"data/tuning/{model}.kv")
         dict_mat_embedding = {}
         #Read moy matrix
         dict_mat_embedding["Moyenne_TF"] = moyenne.word_emb_vers_doc_emb_moyenne(docs, ev, methode = 'TF')
         dict_mat_embedding["Moyenne_TFIDF"]  = moyenne.word_emb_vers_doc_emb_moyenne(docs, ev, methode = 'TF-IDF')
         if model != "glove":
-            dict_mat_embedding["WMD_MDS"] = np.array(pd.read_csv(f"data/tunning/MDS/{model}_mds_embedding.csv",sep=";",header=0))
+            dict_mat_embedding["WMD_MDS"] = np.array(pd.read_csv(f"data/tuning/MDS/{model}_mds_embedding.csv",sep=";",header=0))
         dict_mat_embedding["WMD_Distance"] = np.array(lecture_fichier_distances_wmd(f"distances_{model}.7z"))
 
         for type_doc_embedding,mat_doc_embedding in dict_mat_embedding.items():
@@ -82,10 +82,10 @@ def GMM_parallel(word_embedding_model,list_perplexity,n_jobs=5):
             with multiprocessing.Pool(processes=n_jobs,initializer=init_worker, initargs=(mat_doc_embedding_shared,mat_doc_embedding.shape,type_doc_embedding,model)) as pool:
                 results = [pool.apply_async(GMM_evaluation,(perplexity,)) for perplexity in list_perplexity2 ]
                 df_evaluation = pd.concat([f.get() for f in results])
-                df_evaluation.to_csv(f"data/tunning/clustering/GMM/gmm_{model}_{type_doc_embedding}.csv",sep=";",index=False)
+                df_evaluation.to_csv(f"data/tuning/clustering/GMM/gmm_{model}_{type_doc_embedding}.csv",sep=";",index=False)
 
                 list_df_evaluation += [df_evaluation]
-                pd.concat(list_df_evaluation).to_csv(f"data/tunning/clustering/gmm.csv",sep=";",index=False)
+                pd.concat(list_df_evaluation).to_csv(f"data/tuning/clustering/gmm.csv",sep=";",index=False)
 
 
 use_parrallel = True
