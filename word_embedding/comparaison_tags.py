@@ -24,7 +24,7 @@ def get_df_tag_similarity(read:bool=True,test_size:int = 10) -> pd.DataFrame:
     
 
     if read:
-        df_tag_similiraty = pd.read_csv("data/tunning/tag_similiraty.csv",sep=";",index_col=0)
+        df_tag_similiraty = pd.read_csv("data/tuning/tag_similiraty.csv",sep=";",index_col=0)
     else:
         # Get all tags
         # load sentences
@@ -62,7 +62,7 @@ def get_df_tag_similarity(read:bool=True,test_size:int = 10) -> pd.DataFrame:
 
         # Save matx_tag_similarity
         df_tag_similiraty = pd.DataFrame(matx_tag_similiraty,index=dictionary_test,columns=dictionary_test)
-        df_tag_similiraty.to_csv("data/tunning/tag_similiraty.csv",sep=";")
+        df_tag_similiraty.to_csv("data/tuning/tag_similiraty.csv",sep=";")
     
     return(df_tag_similiraty)
 
@@ -98,7 +98,7 @@ def evaluation_tag(df_tag_similiraty:pd.DataFrame, start:int=0) -> None:
     list_models_filename = os.listdir("data/training_models")
     
     if start != 0:
-        df_old_evaluation = pd.read_csv("data/tunning/evaluation_tags.csv",sep=";")
+        df_old_evaluation = pd.read_csv("data/tuning/evaluation_tags.csv",sep=";")
         list_windows = list(df_old_evaluation["windows"].values)
         list_dim_emb = list(df_old_evaluation["dim_emb"].values)
         list_type_model = list(df_old_evaluation["type_model"].values)
@@ -126,7 +126,7 @@ def evaluation_tag(df_tag_similiraty:pd.DataFrame, start:int=0) -> None:
             df_evaluation = pd.DataFrame(list(zip(
                 list_models_filename, list_type_model, list_windows, list_dim_emb,list_tag_mse)),
                                             columns=[ "models_filename", "type_model", "windows", "dim_emb","tag_mse"])
-            df_evaluation.to_csv("data/tunning/evaluation_tags.csv",sep=";",index=False)
+            df_evaluation.to_csv("data/tuning/evaluation_tags.csv",sep=";",index=False)
             
         
 

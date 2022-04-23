@@ -178,7 +178,7 @@ if __name__ == "__main__":
     for model_type in ["skipgram","glove"]:
         print(model_type)
         t0 = time.time()
-        embed_model = models.KeyedVectors.load_word2vec_format(f"data/tunning/{model_type}.kv")
+        embed_model = models.KeyedVectors.load_word2vec_format(f"data/tuning/{model_type}.kv")
         distance_wmd_tous_docs(docs,
                                 modele = embed_model, 
                                 retour = 'fichier', 

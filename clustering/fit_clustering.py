@@ -509,7 +509,7 @@ if __name__ == '__main__':
     # print(selection_meilleur_dbscan(data=distances,init_dim=5,listeDistances="precomputed",listeRayons=[0.25],listeVoisinage=range(10,11,10)))
     # print(selection_meilleur_hdbscan(distances, listeDistances = 'precomputed',listeMinClusterSize=range(10,101,10),init_dim=5))
 
-    ev_cbow = models.KeyedVectors.load_word2vec_format('data/tunning/cbow.kv')
+    ev_cbow = models.KeyedVectors.load_word2vec_format('data/tuning/cbow.kv')
     with open("data/docs.json") as file:
         docs = json.load(file)
     moy_embedding_tfidf = moy_emb.word_emb_vers_doc_emb_moyenne(docs=docs, modele=ev_cbow, methode = 'TF-IDF')
