@@ -311,7 +311,7 @@ def selection_meilleur_GMM(
 
     return resultats.iloc[:nbRetours, :] , np.array(list_labels[:nbRetours])
 
-def Ensemble_Clustering(
+def Get_All_Labels(
     data: Union[DataFrame, List[np.ndarray]], 
     distance:Union[DataFrame, List[np.ndarray]]=None, 
     nbRetours: int = None,
@@ -323,9 +323,8 @@ def Ensemble_Clustering(
     ensembleK: List[int] = [2, 3, 4, 5, 6], 
     ensembleCovariances: List[str] = ['full', 'tied', 'diag', 'spherical'],
     listeMinClusterSize: Union[range , List[int]] = range(10, 50), 
-    listeDistances: Union[str ,List[str]] = ['euclidean', 'manhattan', 'chebyshev'],
-    listSolver:Union[List[str],str] = "hbgf",
-    listeK: Union[range , List[int]]=[None])-> Tuple[DataFrame,np.ndarray]:
+    listeDistances: Union[str ,List[str]] = ['euclidean', 'manhattan', 'chebyshev']) -> List[np.ndarray]:
+    
     
     if type(listeDistances) not in [list,str]:
         raise ValueError("'listDistances' doit etre une liste")
@@ -335,13 +334,6 @@ def Ensemble_Clustering(
     if "precomputed" in listeDistances and distance is None:
         raise ValueError("La distance 'precomputed' necessite le parametre distance ")
 
-    if type(listSolver) not in [list,str]:
-        raise ValueError("'listSolver' doit etre une liste")
-    elif type(listSolver) !=  list : 
-        listSolver = [listSolver]
-    if any([solver not in ['cspa','hgpa','mcla','hbgf','nmf'] for solver in listSolver]):
-        raise ValueError("'listSolver' doit etre contenu dans ['cspa','hgpa','mcla','hbgf','nmf']") 
-
     if  len(listAlgo) == 0:
         raise ValueError("'listAlgo' doit etre une liste contenant au moins un des elements : ['kmeans','gmm','hdbscan']")
 
@@ -349,21 +341,25 @@ def Ensemble_Clustering(
     if verbose:
         print("Recherche optimale - Concensus Clustering")
     
+    allSilhouette = []
     if allLabels is None:
         allLabels = []
         if 'kmeans' in listAlgo:
             resultatKmean, listLabelsKmeans = selection_meilleur_kmeans(data,nbRetours=nbRetours,verbose=verbose,ensembleK=ensembleK)
-            allLabels.append(listLabelsKmeans)
+            allLabels += [listLabelsKmeans]
+            allSilhouette = np.concatenate((allSilhouette,resultatKmean['silhouette'].values))
             if distance is not None:
                 resultatKmedoides, listLabelsKmedoides = selection_meilleur_kmedoides(distance=distance,ensembleK=ensembleK,init_dim=init_dim)
-                allLabels.append(listLabelsKmedoides)
+                allLabels += [label for label in listLabelsKmedoides]
+                allSilhouette = np.concatenate((allSilhouette,resultatKmedoides['silhouette'].values))
             if verbose:
                 print('Kmeans')
                 print(resultatKmean)
         
         if 'gmm' in listAlgo:
             resultatGMM, listLabelsGMM = selection_meilleur_GMM(data,nbRetours=nbRetours,verbose=verbose,ensembleK=ensembleK,ensembleCovariances=ensembleCovariances)
-            allLabels.append(listLabelsGMM)
+            allLabels += [listLabelsGMM]
+            allSilhouette = np.concatenate((allSilhouette,resultatGMM['silhouette'].values))
             if verbose:
                 print('GMM')
                 print(resultatGMM)    
@@ -375,7 +371,8 @@ def Ensemble_Clustering(
             else:
                 resultatHdbscan, listLabelsHdbscan = selection_meilleur_hdbscan(data,nbRetours=nbRetours,verbose=verbose, n_jobs=n_jobs,init_dim=init_dim,listeDistances=listeDistances,listeMinClusterSize=listeMinClusterSize)
             
-            allLabels.append(listLabelsHdbscan)
+            allLabels += [listLabelsHdbscan]
+            allSilhouette = np.concatenate((allSilhouette,resultatHdbscan['silhouette'].values))
             if verbose:
                 print('HDBSCAN')
                 print(resultatHdbscan)
@@ -387,29 +384,64 @@ def Ensemble_Clustering(
             allLabels = np.array(allLabels)
         if type(allLabels) != np.ndarray:
             raise ValueError("'allLabels' doit etre une liste")
+    
+    return allLabels,allSilhouette
 
 
-    nbModeles: int = len(listeK) * len(listSolver)
-    colonnes = ['K', 'Solver','silhouette', 'Cal-Harabasz','DBCV','ANMI']
+def Ensemble_Clustering(
+    data: Union[DataFrame, List[np.ndarray]]=None,
+    allLabels:np.ndarray = None,
+    allSilhouette:np.ndarray = None,
+    listMinSilhouette:List[float]=[-1],
+    listSolver:Union[List[str],str] = "hbgf",
+    listeK: Union[range , List[int]]=[None], 
+    distance:Union[DataFrame, List[np.ndarray]]=None, 
+    nbRetours: int = None,
+    n_jobs: int = 6, 
+    verbose: bool = True,
+    init_dim:int = 100,
+    listAlgo:List[str] = ["kmeans","gmm","hdbscan"],
+    ensembleK: List[int] = [2, 3, 4, 5, 6], 
+    ensembleCovariances: List[str] = ['full', 'tied', 'diag', 'spherical'],
+    listeMinClusterSize: Union[range , List[int]] = range(10, 50), 
+    listeDistances: Union[str ,List[str]] = ['euclidean', 'manhattan', 'chebyshev'])-> Tuple[DataFrame,np.ndarray]:
+
+
+    if type(listSolver) not in [list,str]:
+        raise ValueError("'listSolver' doit etre une liste")
+    elif type(listSolver) !=  list : 
+        listSolver = [listSolver]
+    if any([solver not in ['cspa','hgpa','mcla','hbgf','nmf'] for solver in listSolver]):
+        raise ValueError("'listSolver' doit etre contenu dans ['cspa','hgpa','mcla','hbgf','nmf']")
+    
+    if allLabels is None:
+        allLabels, allSilhouette = Get_All_Labels(data=data, distance=distance,nbRetours=nbRetours,n_jobs=n_jobs, verbose=verbose,init_dim=init_dim,allLabels=allLabels,
+                                                  listAlgo=listAlgo, ensembleK=ensembleK, ensembleCovariances=ensembleCovariances,listeMinClusterSize=listeMinClusterSize,listeDistances=listeDistances)
+    
+    nbModeles: int = len(listeK) * len(listSolver) * len(listMinSilhouette)
+    colonnes = ['K', 'Solver','MinSilhouette','silhouette', 'Cal-Harabasz','DBCV','ANMI']
     resultatsCe = DataFrame(columns = colonnes)
     list_labels = []
 
-    grille = itertools.product(listeK, listSolver)
+    grille = itertools.product(listeK, listSolver,listMinSilhouette)
     
     it: int = 0
-    for K, solver in grille:
+    for K, solver, minSilhouette in grille:
 
         if verbose:
             evolution(it, nbModeles)
+            
+        try:
+            labelCe = ce.cluster_ensembles(allLabels[np.where(allSilhouette >= minSilhouette)], solver=solver,nclass=K)
+            list_labels.append(labelCe)
 
-        labelCe = ce.cluster_ensembles(allLabels, solver=solver,nclass=K)
-        list_labels.append(labelCe)
+            K = len(set(labelCe))
+            calhar, silhouette, DBCV = _evaluation_clustering(labels=labelCe,data=data) if data is not None else _evaluation_clustering(labels=labelCe,data=distance)
+            ANMI = np.mean([normalized_mutual_info_score(labels_true=labels,labels_pred=labelCe) for labels in allLabels[np.where(allSilhouette >= minSilhouette)]])
 
-        K = len(set(labelCe))
-        calhar, silhouette, DBCV = _evaluation_clustering(labels=labelCe,data=data)
-        ANMI = np.mean([normalized_mutual_info_score(labels_true=labels,labels_pred=labelCe) for labels in allLabels])
-
-        resultatsCe.loc[len(resultatsCe.index)] = [K,solver, silhouette, calhar, DBCV,ANMI]
+            resultatsCe.loc[len(resultatsCe.index)] = [K,solver,minSilhouette, silhouette, calhar, DBCV,ANMI]
+        except:
+            pass
 
         it += 1
 
