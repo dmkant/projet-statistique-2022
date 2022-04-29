@@ -427,7 +427,7 @@ decideur
 decision
 coherente
 urgent
-être
+Ãªtre
 concurrence
 competition
 generent
@@ -901,7 +901,7 @@ eter
 urs
 tenter
 convaincre
-kilomètre
+kilomÃ¨tre
 facilement
 piste
 cyclable
@@ -3007,7 +3007,7 @@ origine
 genocide
 encontre
 demesure
-disparaître
+disparaÃ®tre
 chassable
 lache
 gibier
@@ -3079,7 +3079,7 @@ aspect
 equilibrer
 beton
 infiltration
-connaître
+connaÃ®tre
 constructeur
 isolant
 geree
@@ -3535,7 +3535,7 @@ peser
 vraie
 pompier
 valider
-reconnaître
+reconnaÃ®tre
 ~%
 deconstruire
 menacees
@@ -5746,7 +5746,7 @@ stocamine
 phreatiqu
 fermenticible
 exceder
-requérir
+requÃ©rir
 congeler
 viable
 appli
